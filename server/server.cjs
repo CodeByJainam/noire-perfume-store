@@ -126,7 +126,43 @@ function getRazorpay() {
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", service: "NOIRÉ API" });
 });
+let mongoConnectionPromise = null;
 
+async function ensureMongoConnected() {
+  if (mongoose.connection.readyState === 1) {
+    return;
+  }
+
+  if (!process.env.MONGO_URI) {
+    throw new Error("MONGO_URI is not configured");
+  }
+
+  if (!mongoConnectionPromise) {
+    mongoConnectionPromise = mongoose
+      .connect(process.env.MONGO_URI, {
+        serverSelectionTimeoutMS: 10000,
+      })
+      .catch((error) => {
+        mongoConnectionPromise = null;
+        throw error;
+      });
+  }
+
+  await mongoConnectionPromise;
+}
+
+app.use(async (_req, res, next) => {
+  try {
+    await ensureMongoConnected();
+    next();
+  } catch (error) {
+    console.error("MongoDB connection error:", error.message);
+
+    res.status(503).json({
+      message: "Database is temporarily unavailable.",
+    });
+  }
+});
 // Fetch products from MongoDB Atlas
 app.get("/api/products", async (_req, res) => {
   try {
@@ -469,27 +505,45 @@ app.post("/api/payments/verify", async (req, res) => {
 });
 
 // Start the server only once, after MongoDB connects.
-async function startServer() {
-  if (!process.env.MONGO_URI) {
-    throw new Error("MONGO_URI missing in server/.env");
-  }
+// async function startServer() {
+//   if (!process.env.MONGO_URI) {
+//     throw new Error("MONGO_URI missing in server/.env");
+//   }
 
-  await mongoose.connect(process.env.MONGO_URI, {
-    serverSelectionTimeoutMS: 10000,
-  });
+//   await mongoose.connect(process.env.MONGO_URI, {
+//     serverSelectionTimeoutMS: 10000,
+//   });
 
-  console.log(
-    `MongoDB connected: ${mongoose.connection.name}`
-  );
+//   console.log(
+//     `MongoDB connected: ${mongoose.connection.name}`
+//   );
 
-  app.listen(PORT, () => {
-    console.log(
-      `NOIRÉ API running at http://localhost:${PORT}`
-    );
-  });
+//   app.listen(PORT, () => {
+//     console.log(
+//       `NOIRÉ API running at http://localhost:${PORT}`
+//     );
+//   });
+// }
+
+// startServer().catch((error) => {
+//   console.error("Server startup failed:", error.message);
+//   process.exit(1);
+// });
+
+
+// Local development: npm start
+if (require.main === module) {
+  ensureMongoConnected()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`NOIRÉ API running on port ${PORT}`);
+      });
+    })
+    .catch((error) => {
+      console.error("Server startup failed:", error.message);
+      process.exit(1);
+    });
 }
 
-startServer().catch((error) => {
-  console.error("Server startup failed:", error.message);
-  process.exit(1);
-});
+// Export the Express app for Vercel.
+module.exports = app;
