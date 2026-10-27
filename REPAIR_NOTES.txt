@@ -1,0 +1,13 @@
+NOIRÉ REPAIR NOTES
+
+This is a separate repaired copy. Your original uploaded ZIP was not modified.
+
+Changes made:
+- Repaired server/server.js startup (no top-level await, no undefined loadProducts, one app.listen).
+- Restored the API endpoints used by the current React app: /api/health, /api/products, and /api/cart (GET/POST/PUT/DELETE).
+- Kept Razorpay create-order, signature verification, and webhook handling.
+- Moved /checkout and /order-success inside React Router's Routes and connected CheckoutPage to the existing CartContext provider.
+
+IMPORTANT: The supplied archive's server/data/products.js already contains an empty array and a self-import helper, not the original product records. It was intentionally not overwritten in this repair. The server will start and warn that zero products are loaded, but the shop and checkout cannot work until the original product array is restored to server/data/products.js. No replacement/fake product data was invented.
+
+The in-memory cart and order maps are for local testing only and clear when the server restarts.
