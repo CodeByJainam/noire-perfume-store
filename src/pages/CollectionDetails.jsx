@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import ProductCard from "../components/ProductsCard"
+import { apiUrl } from "../lib/api"
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"
 
 function CollectionDetails({ products = [], addToCart }) {
   const { slug } = useParams()

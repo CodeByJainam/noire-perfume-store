@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
+import { apiUrl } from "../lib/api"
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"
 
 function Collections() {
   const [collections, setCollections] = useState([])
@@ -13,7 +13,7 @@ function Collections() {
 
     async function fetchCollections() {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/collections`, {
+        const response = await fetch(apiUrl("/api/collections"), {
           signal: controller.signal,
         })
 
