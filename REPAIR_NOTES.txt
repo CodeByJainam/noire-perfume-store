@@ -1,0 +1,34 @@
+NOIRÉ REPAIR NOTES
+==================
+
+This is a repaired copy. The original uploaded ZIP was not modified.
+
+What was changed:
+- Fixed the root npm start script so it no longer points at the missing
+  server/server.cjs file.
+- Added mongoose to root dependencies so Vercel can bundle the API dependency.
+- Made the Express API start even if MongoDB Atlas is temporarily unavailable.
+- Kept /api/health independent of MongoDB and added safe dependency-status fields.
+- Added a local development fallback to the existing seven-product seed catalogue.
+- Updated API URL handling for local development, same-origin Vercel deployment,
+  and a separately deployed API using VITE_API_URL.
+- Moved the React cart to browser localStorage so cart state is not lost between
+  API calls/serverless function instances.
+- Fixed the broken nested useEffect in ProductDetails.jsx.
+- Updated payment verification to fetch the Razorpay order/payment instead of
+  depending on in-memory pending-order maps that do not persist on Vercel.
+- Added safe .env.example templates and a clean install/run guide.
+- Excluded node_modules and the actual server/.env from the output ZIP.
+
+Important:
+- The uploaded archive contained a real MongoDB connection URI. The real .env
+  file was intentionally excluded. Rotate that MongoDB database user's password
+  in Atlas, then create server/.env from server/.env.example and add your new URI.
+- The supplied Razorpay values were placeholders. Add valid Razorpay Test Mode
+  keys before attempting checkout.
+- The API health and products endpoints were smoke-tested locally. A live Atlas
+  connection and a real Razorpay payment cannot be verified without your newly
+  configured credentials/network access.
+- Production needs the MongoDB catalogue seeded and available. Local development
+  can display the bundled seed catalogue while MongoDB is unavailable.
+- Persistent order history and inventory management are not implemented yet.

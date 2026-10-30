@@ -1,0 +1,84 @@
+NOIRÉ — CLEAN INSTALL / RUN GUIDE
+=================================
+
+SECURITY
+--------
+The supplied ZIP contained a real MongoDB connection URI. This repaired ZIP
+intentionally excludes server/.env. Rotate the exposed MongoDB database user's
+password in MongoDB Atlas before continuing. Do not share .env files or secrets.
+
+1) FRONTEND DEPENDENCIES
+------------------------
+Open CMD in the shopping-cart project root:
+  npm install
+
+2) BACKEND DEPENDENCIES
+-----------------------
+In the same CMD:
+  cd server
+  npm install
+  copy .env.example .env
+
+Open server/.env and fill in a NEW MongoDB URI/password and real Razorpay TEST
+keys. Do not leave placeholder values. If your MongoDB password contains
+special characters, URL-encode it in the connection URI.
+
+3) START THE BACKEND
+--------------------
+Keep this terminal in shopping-cart/server:
+  npm start
+
+Expected:
+  NOIRÉ API running at http://localhost:5000
+
+Test:
+  http://localhost:5000/api/health
+
+The API health route is available even when MongoDB is offline. In local
+development, product routes use the checked-in seed catalogue as a fallback.
+Payment order creation still requires valid Razorpay test keys.
+
+4) START THE FRONTEND
+---------------------
+Open a SECOND CMD in the project root:
+  npm run dev
+
+Open the URL Vite prints (normally http://localhost:5173).
+
+5) OPTIONAL: SEED MONGODB ATLAS
+-------------------------------
+After MongoDB is reachable and server/.env is configured:
+  cd server
+  node seedProducts.js
+
+The seed script upserts the NOIRÉ sample catalogue into MongoDB.
+
+6) VERCEL DEPLOYMENT
+--------------------
+- Keep server/.env out of Git and do not upload it.
+- Configure MONGO_URI, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, and CLIENT_URL
+  in the Vercel backend project's Environment Variables.
+- If frontend and API are in the same Vercel project, leave VITE_API_URL blank
+  so the frontend calls the same-origin /api routes.
+- If frontend and API are separate deployments, set VITE_API_URL to the API
+  origin and set CLIENT_URL to the frontend origin in the API environment.
+- Redeploy after changing environment variables.
+- Test /api/health, /api/products, cart behaviour, and Razorpay Test Mode.
+
+ADMIN ACCOUNT SETUP
+1. Open server/.env (server side only) and add ADMIN_EMAIL=your-admin-email@example.com.
+2. Restart the backend after saving the .env file.
+3. Create a normal NOIRÉ account using that exact email if it does not already exist.
+4. Log out and log in again using that email and its password. The backend promotes this matching account to admin.
+5. Open My Account -> Open Admin Dashboard, or visit /admin.
+6. Never add ADMIN_EMAIL or any database/payment secret to a VITE_ frontend variable. Do not allow public signup to set a role.
+Admin APIs verify the role on the server. Admin dashboard includes store summary, products (add/edit/delete), orders (status management), and registered-account listing.
+
+
+ADMIN DASHBOARD + PRODUCT IMAGE UPLOAD
+=====================================
+- Sign in with the email configured as ADMIN_EMAIL in server/.env. If the account already exists, log out and log in again after configuring the email so the server can assign the admin role.
+- Open http://localhost:5173/admin. Admin API routes verify the role on the server.
+- The dashboard supports adding products, editing all product fields, uploading product images (JPG/PNG/WEBP/AVIF up to 5 MB), deleting products, viewing customers/orders, and changing order status.
+- Local uploads are stored in server/uploads. This is suitable for local development. Vercel/serverless uploads are written to temporary storage only and are not persistent; configure persistent object storage (for example Cloudinary or S3) before relying on uploaded files in production.
+- Keep server/.env private. It is intentionally not included in this source ZIP.
