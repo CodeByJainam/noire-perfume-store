@@ -16,7 +16,7 @@ const jwt = require("jsonwebtoken")
 const cookieParser = require("cookie-parser")
 const User = require("./models/User")
 const Order = require("./models/Order")
-const nodemailer = require("nodemailer")
+// const nodemailer = require("nodemailer")
 require("dotenv").config({ path: path.join(__dirname, ".env") })
 
 const hasRazorpayCredentials = Boolean(
