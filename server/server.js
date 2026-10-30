@@ -971,15 +971,18 @@ app.delete(
 // Products are served exclusively from MongoDB; no local demo catalogue fallback.
 app.get("/api/products", async (_req, res) => {
   try {
-    const products = await Product.find().lean()
-    return res.json(products)
+    await ensureMongoConnected();
+
+    const products = await Product.find().lean();
+    return res.json(products);
   } catch (error) {
-    console.error("Fetch products error:", error.message)
+    console.error("Fetch products error:", error.message);
+
     return res.status(503).json({
-      message: "Product database is temporarily unavailable.",
-    })
+      message: "Product database is temporarily unavailable."
+    });
   }
-})
+});
 
 // Get collections dynamically from MongoDB products
 
