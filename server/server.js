@@ -31,6 +31,7 @@ const allowedOrigins = [
     .filter(Boolean),
   "http://localhost:5173",
   "http://127.0.0.1:5173",
+  "https://noire-perfume-store-five.vercel.app/",
 ]
 
 app.use(
@@ -352,7 +353,7 @@ app.post("/api/auth/register", async (req, res) => {
       role,
     });
 
-    
+
 
     // Create authentication token
     const token = createAuthToken(user);
@@ -508,7 +509,7 @@ app.post("/api/auth/forgot-password", async (req, res) => {
     await user.save()
 
     const clientUrl = (
-      process.env.CLIENT_URL || "http://localhost:5173"
+      process.env.CLIENT_URL || "https://noire-perfume-store-five.vercel.app/"
     ).replace(/\/+$/, "")
 
     const resetUrl = `${clientUrl}/reset-password/${resetToken}`
