@@ -1,0 +1,11 @@
+NOIRÉ Super Admin access fix
+
+Changes:
+- After login, admin and super_admin accounts are redirected to /admin by default.
+- The My Account page now shows the administration shortcut for both admin and super_admin.
+- Super Admin sees an appropriate access label and retains access to /admin/management through the existing sidebar.
+- Existing Admin and Super Admin layouts, backend role checks, and other store functionality were left unchanged.
+
+Verification:
+- Reviewed App.jsx route protection: /admin accepts admin and super_admin; /admin/management is super_admin-only.
+- Full Vite build could not be completed because the uploaded node_modules is missing the platform-specific Rolldown native binding. Run npm install locally before building.
