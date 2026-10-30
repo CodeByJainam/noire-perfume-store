@@ -29,9 +29,9 @@ const allowedOrigins = [
     .split(",")
     .map((origin) => origin.trim().replace(/\/+$/, ""))
     .filter(Boolean),
+  "https://noire-perfume-store-five.vercel.app/",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
-  "https://noire-perfume-store-five.vercel.app/",
 ]
 
 app.use(
