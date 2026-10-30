@@ -316,7 +316,7 @@ function App() {
               }
             />
             <Route path="/account" element={<AccountPage />} />
-            <Route path="/admin" element={<AdminPage />} />
+            
             <Route path="/forgot-password" element={<ForgotPassword />} />
 
             <Route element={<AdminProtectedRoute />}>
