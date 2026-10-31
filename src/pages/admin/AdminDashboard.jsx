@@ -1,29 +1,29 @@
-import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
-import AdminSidebar from "../../components/admin/AdminSidebar"
-
-const API = "/api/admin/products"
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import AdminSidebar from "../../components/admin/AdminSidebar";
+import { apiUrl } from "../../lib/api";
+const API = apiUrl("/api/admin/products");
 
 export default function AdminDashboard() {
-  const [products, setProducts] = useState([])
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(true)
+  const [products, setProducts] = useState([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch(API, { credentials: "include" })
       .then(async (res) => {
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.message || "Could not load products")
-        return data
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Could not load products");
+        return data;
       })
       .then((data) => {
-        setProducts(Array.isArray(data) ? data : data.products || [])
+        setProducts(Array.isArray(data) ? data : data.products || []);
       })
       .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
-  }, [])
+      .finally(() => setLoading(false));
+  }, []);
 
-  const lowStock = products.filter((p) => Number(p.stock ?? 0) <= 5)
+  const lowStock = products.filter((p) => Number(p.stock ?? 0) <= 5);
 
   return (
     <div className="noire-admin">
@@ -105,5 +105,5 @@ export default function AdminDashboard() {
         </section>
       </main>
     </div>
-  )
+  );
 }

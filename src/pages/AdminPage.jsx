@@ -1,28 +1,28 @@
-import { useCallback, useEffect, useState } from "react"
-import { Link, Navigate } from "react-router-dom"
-import { useAuth } from "../context/AuthContext"
-import { apiUrl } from "../lib/api"
+import { useCallback, useEffect, useState } from "react";
+import { Link, Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { apiUrl } from "../lib/api";
 
 const money = (value) =>
   new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 2,
-  }).format(Number(value) || 0)
+  }).format(Number(value) || 0);
 
 function AdminPage() {
-  const { user, isAuthenticated, authLoading } = useAuth()
-  const [summary, setSummary] = useState(null)
-  const [orders, setOrders] = useState([])
-  const [users, setUsers] = useState([])
-  const [products, setProducts] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-  const [notice, setNotice] = useState("")
-  const [savingProduct, setSavingProduct] = useState(false)
-  const [editingProductId, setEditingProductId] = useState("")
-  const [imageFile, setImageFile] = useState(null)
-  const [uploadingImage, setUploadingImage] = useState(false)
+  const { user, isAuthenticated, authLoading } = useAuth();
+  const [summary, setSummary] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [savingProduct, setSavingProduct] = useState(false);
+  const [editingProductId, setEditingProductId] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [productForm, setProductForm] = useState({
     id: "",
     name: "",
@@ -34,45 +34,50 @@ function AdminPage() {
     concentration: "Eau De Parfum",
     notes: "",
     badge: "",
-  })
+  });
 
   const request = useCallback(async (path, options = {}) => {
     const response = await fetch(apiUrl(path), {
       ...options,
       credentials: "include",
       headers: { "Content-Type": "application/json", ...options.headers },
-    })
-    const data = await response.json().catch(() => ({}))
+    });
+    const data = await response.json().catch(() => ({}));
     if (!response.ok)
-      throw new Error(data.message || `Request failed (${response.status})`)
-    return data
-  }, [])
+      throw new Error(data.message || `Request failed (${response.status})`);
+    return data;
+  }, []);
 
   const loadDashboard = useCallback(async () => {
-    setLoading(true)
-    setError("")
+    setLoading(true);
+    setError("");
     try {
       const [stats, orderData, userData, productData] = await Promise.all([
         request("/api/admin/summary"),
         request("/api/admin/orders"),
         request("/api/admin/users"),
         request("/api/admin/products"),
-      ])
-      setSummary(stats)
-      setOrders(orderData.orders || [])
-      setUsers(userData.users || [])
-      setProducts(productData.products || [])
+      ]);
+      setSummary(stats);
+      setOrders(orderData.orders || []);
+      setUsers(userData.users || []);
+      setProducts(productData.products || []);
     } catch (err) {
-      setError(err.message || "Unable to load admin dashboard.")
+      setError(err.message || "Unable to load admin dashboard.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [request])
+  }, [request]);
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated && user?.role === "admin")
-      loadDashboard()
-  }, [authLoading, isAuthenticated, user?.role, loadDashboard])
+    if (
+      !authLoading &&
+      isAuthenticated &&
+      ["admin", "super_admin"].includes(user?.role)
+    ) {
+      loadDashboard();
+    }
+  }, [authLoading, isAuthenticated, user?.role, loadDashboard]);
 
   if (authLoading)
     return (
@@ -81,9 +86,9 @@ function AdminPage() {
           <p>Checking administrator access...</p>
         </div>
       </main>
-    )
+    );
   if (!isAuthenticated)
-    return <Navigate to="/login" state={{ from: "/admin" }} replace />
+    return <Navigate to="/login" state={{ from: "/admin" }} replace />;
   if (user?.role !== "admin")
     return (
       <main className="admin-page">
@@ -98,26 +103,26 @@ function AdminPage() {
           </div>
         </div>
       </main>
-    )
+    );
 
   const updateOrderStatus = async (orderId, orderStatus) => {
-    setNotice("")
-    setError("")
+    setNotice("");
+    setError("");
     try {
       await request(`/api/admin/orders/${orderId}/status`, {
         method: "PATCH",
         body: JSON.stringify({ orderStatus }),
-      })
+      });
       setOrders((current) =>
         current.map((order) =>
           order._id === orderId ? { ...order, orderStatus } : order,
         ),
-      )
-      setNotice("Order status updated.")
+      );
+      setNotice("Order status updated.");
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
     }
-  }
+  };
 
   const resetProductForm = () => {
     setProductForm({
@@ -131,38 +136,38 @@ function AdminPage() {
       concentration: "Eau De Parfum",
       notes: "",
       badge: "",
-    })
-    setEditingProductId("")
-    setImageFile(null)
-  }
+    });
+    setEditingProductId("");
+    setImageFile(null);
+  };
 
   const createProduct = async (event) => {
-    event.preventDefault()
-    setSavingProduct(true)
-    setError("")
-    setNotice("")
+    event.preventDefault();
+    setSavingProduct(true);
+    setError("");
+    setNotice("");
     try {
-      let image = productForm.image
+      let image = productForm.image;
       if (imageFile) {
-        setUploadingImage(true)
+        setUploadingImage(true);
         const dataUrl = await new Promise((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onload = () => resolve(reader.result)
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
           reader.onerror = () =>
-            reject(new Error("Could not read the selected image."))
-          reader.readAsDataURL(imageFile)
-        })
+            reject(new Error("Could not read the selected image."));
+          reader.readAsDataURL(imageFile);
+        });
         const uploadData = await request("/api/admin/uploads/product-image", {
           method: "POST",
           body: JSON.stringify({ dataUrl }),
-        })
-        image = uploadData.image
+        });
+        image = uploadData.image;
       }
       const payload = {
         ...productForm,
         image,
         price: Number(productForm.price),
-      }
+      };
       if (editingProductId) {
         await request(
           `/api/admin/products/${encodeURIComponent(editingProductId)}`,
@@ -170,28 +175,28 @@ function AdminPage() {
             method: "PATCH",
             body: JSON.stringify(payload),
           },
-        )
-        setNotice("Product updated successfully.")
+        );
+        setNotice("Product updated successfully.");
       } else {
         await request("/api/admin/products", {
           method: "POST",
           body: JSON.stringify(payload),
-        })
-        setNotice("Product added successfully.")
+        });
+        setNotice("Product added successfully.");
       }
-      resetProductForm()
-      await loadDashboard()
+      resetProductForm();
+      await loadDashboard();
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
     } finally {
-      setSavingProduct(false)
-      setUploadingImage(false)
+      setSavingProduct(false);
+      setUploadingImage(false);
     }
-  }
+  };
 
   const editProduct = (product) => {
-    setEditingProductId(product.id)
-    setImageFile(null)
+    setEditingProductId(product.id);
+    setImageFile(null);
     setProductForm({
       id: product.id || "",
       name: product.name || "",
@@ -203,33 +208,33 @@ function AdminPage() {
       concentration: product.concentration || "Eau De Parfum",
       notes: product.notes || "",
       badge: product.badge || "",
-    })
-    setError("")
-    setNotice("Editing product. Save changes when finished.")
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }
+    });
+    setError("");
+    setNotice("Editing product. Save changes when finished.");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const deleteProduct = async (productId) => {
-    if (!window.confirm("Delete this product from the catalogue?")) return
-    setError("")
-    setNotice("")
+    if (!window.confirm("Delete this product from the catalogue?")) return;
+    setError("");
+    setNotice("");
     try {
       await request(`/api/admin/products/${encodeURIComponent(productId)}`, {
         method: "DELETE",
-      })
+      });
       setProducts((current) =>
         current.filter((product) => product.id !== productId),
-      )
+      );
       setSummary((current) =>
         current
           ? { ...current, products: Math.max(0, current.products - 1) }
           : current,
-      )
-      setNotice("Product deleted.")
+      );
+      setNotice("Product deleted.");
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
     }
-  }
+  };
 
   return (
     <main className="admin-page">
@@ -650,7 +655,7 @@ function AdminPage() {
         </div>
       </div>
     </main>
-  )
+  );
 }
 
-export default AdminPage
+export default AdminPage;

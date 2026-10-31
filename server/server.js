@@ -262,18 +262,29 @@ function requireAuth(req, res, next) {
   }
 }
 
+
 async function requireAdmin(req, res, next) {
   try {
     await ensureMongoConnected()
-    const user = await User.findById(req.auth?.sub).select("role").lean()
-    if (!user || user.role !== "admin") {
-      return res.status(403).json({ message: "Admin access required." })
+
+    const user = await User.findById(req.auth?.sub)
+      .select("name email role")
+      .lean()
+
+    if (!user || !["admin", "super_admin"].includes(user.role)) {
+      return res.status(403).json({
+        message: "Admin access required.",
+      })
     }
+
     req.adminUser = user
     return next()
   } catch (error) {
     console.error("Admin authorization error:", error.message)
-    return res.status(503).json({ message: "Could not verify admin access." })
+
+    return res.status(503).json({
+      message: "Could not verify admin access.",
+    })
   }
 }
 
@@ -414,6 +425,7 @@ app.post("/api/auth/login", async (req, res) => {
     }
 
     // Read configured admin emails
+    // Read configured admin emails
     const superAdminEmail = process.env.SUPER_ADMIN_EMAIL
       ?.trim()
       .toLowerCase();
@@ -422,8 +434,8 @@ app.post("/api/auth/login", async (req, res) => {
       ?.trim()
       .toLowerCase();
 
-    // Assign role based on configured email
-    let expectedRole = "customer";
+    // Preserve existing role if environment variables are missing.
+    let expectedRole = user.role || "customer";
 
     if (superAdminEmail && email === superAdminEmail) {
       expectedRole = "super_admin";
@@ -431,7 +443,7 @@ app.post("/api/auth/login", async (req, res) => {
       expectedRole = "admin";
     }
 
-    // Update role if required
+    // Update role only when required.
     if (user.role !== expectedRole) {
       user.role = expectedRole;
       await user.save();
@@ -731,41 +743,106 @@ app.patch("/api/auth/profile", requireAuth, async (req, res) => {
 })
 
 // Admin APIs: every endpoint is protected on the server, not just by the React route.
-app.get("/api/admin/summary", requireAuth, requireAdmin, async (_req, res) => {
+async function requireAdmin(req, res, next) {
   try {
-    const [users, products, orders, paidRevenue] = await Promise.all([
-      User.countDocuments(),
-      Product.countDocuments(),
-      Order.countDocuments(),
-      Order.aggregate([
-        { $match: { paymentStatus: "paid" } },
-        { $group: { _id: null, total: { $sum: "$total" } } },
-      ]),
-    ])
-    return res.json({
-      users,
-      products,
-      orders,
-      revenue: paidRevenue[0]?.total || 0,
-    })
-  } catch (error) {
-    console.error("Admin summary error:", error.message)
-    return res.status(500).json({ message: "Unable to load admin summary." })
-  }
-})
+    await ensureMongoConnected();
 
-app.get("/api/admin/users", requireAuth, requireAdmin, async (_req, res) => {
-  try {
-    const users = await User.find()
-      .select("name email role createdAt")
-      .sort({ createdAt: -1 })
-      .lean()
-    return res.json({ users })
+    const user = await User.findById(req.auth?.sub)
+      .select("name email role")
+      .lean();
+
+    if (!user || !["admin", "super_admin"].includes(user.role)) {
+      return res.status(403).json({
+        message: "Admin access required.",
+      });
+    }
+
+    req.adminUser = user;
+    return next();
   } catch (error) {
-    console.error("Admin users error:", error.message)
-    return res.status(500).json({ message: "Unable to load users." })
+    console.error("Admin authorization error:", error.message);
+
+    return res.status(503).json({
+      message: "Could not verify admin access.",
+    });
   }
-})
+}
+
+// Only Super Admin can change account roles.
+app.patch(
+  "/api/admin/users/:id/role",
+  requireAuth,
+  async (req, res, next) => {
+    try {
+      await ensureMongoConnected();
+
+      const currentUser = await User.findById(req.auth?.sub)
+        .select("role")
+        .lean();
+
+      if (!currentUser || currentUser.role !== "super_admin") {
+        return res.status(403).json({
+          message: "Only Super Admin can change account roles.",
+        });
+      }
+
+      return next();
+    } catch (error) {
+      console.error("Super Admin authorization error:", error.message);
+
+      return res.status(503).json({
+        message: "Could not verify Super Admin access.",
+      });
+    }
+  },
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { role } = req.body || {};
+
+      if (!mongoose.isValidObjectId(id)) {
+        return res.status(400).json({
+          message: "Invalid user ID.",
+        });
+      }
+
+      if (!["customer", "admin"].includes(role)) {
+        return res.status(400).json({
+          message: "Role must be customer or admin. Super Admin is protected.",
+        });
+      }
+
+      if (String(id) === String(req.auth.sub)) {
+        return res.status(400).json({
+          message: "You cannot change your own role.",
+        });
+      }
+
+      const targetUser = await User.findByIdAndUpdate(
+        id,
+        { $set: { role } },
+        { new: true, runValidators: true }
+      ).select("name email role");
+
+      if (!targetUser) {
+        return res.status(404).json({
+          message: "User not found.",
+        });
+      }
+
+      return res.json({
+        message: "Role updated successfully.",
+        user: targetUser,
+      });
+    } catch (error) {
+      console.error("Role update error:", error.message);
+
+      return res.status(500).json({
+        message: "Unable to update user role.",
+      });
+    }
+  }
+);
 
 app.get("/api/admin/orders", requireAuth, requireAdmin, async (_req, res) => {
   try {

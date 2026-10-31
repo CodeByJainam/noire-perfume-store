@@ -1,7 +1,15 @@
-
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-
+import { apiUrl } from "../../lib/api";
+const r = await fetch(
+  apiUrl(`/api/admin/users/${target._id || target.id}/role`),
+  {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role }),
+  },
+);
 const links = [
   { to: "/admin", label: "Overview", end: true },
   { to: "/admin/products", label: "Products" },
