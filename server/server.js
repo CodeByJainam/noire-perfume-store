@@ -263,31 +263,6 @@ function requireAuth(req, res, next) {
 }
 
 
-async function requireAdmin(req, res, next) {
-  try {
-    await ensureMongoConnected()
-
-    const user = await User.findById(req.auth?.sub)
-      .select("name email role")
-      .lean()
-
-    if (!user || !["admin", "super_admin"].includes(user.role)) {
-      return res.status(403).json({
-        message: "Admin access required.",
-      })
-    }
-
-    req.adminUser = user
-    return next()
-  } catch (error) {
-    console.error("Admin authorization error:", error.message)
-
-    return res.status(503).json({
-      message: "Could not verify admin access.",
-    })
-  }
-}
-
 app.use("/api/auth", async (req, res, next) => {
   try {
     await ensureMongoConnected()
@@ -767,6 +742,21 @@ async function requireAdmin(req, res, next) {
     });
   }
 }
+
+// Admin and Super Admin can view registered accounts.
+app.get("/api/admin/users", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const users = await User.find()
+      .select("name email role createdAt")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.json({ users });
+  } catch (error) {
+    console.error("Admin users error:", error.message);
+    return res.status(500).json({ message: "Unable to load users." });
+  }
+});
 
 // Only Super Admin can change account roles.
 app.patch(

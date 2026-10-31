@@ -1,110 +1,110 @@
-import { useEffect, useState } from "react"
-import { Link, Navigate, useNavigate } from "react-router-dom"
-import { useAuth } from "../context/AuthContext"
-import { apiUrl } from "../lib/api"
+import { useEffect, useState } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { apiUrl } from "../lib/api";
 
 function AccountPage() {
-  const { user, isAuthenticated, authLoading, logout, updateUser } = useAuth()
-  const navigate = useNavigate()
-  const [loggingOut, setLoggingOut] = useState(false)
-  const [error, setError] = useState("")
-  const [orders, setOrders] = useState([])
-  const [ordersLoading, setOrdersLoading] = useState(true)
-  const [ordersError, setOrdersError] = useState("")
-  const [editingProfile, setEditingProfile] = useState(false)
-  const [profileName, setProfileName] = useState("")
-  const [profileEmail, setProfileEmail] = useState("")
-  const [profileSaving, setProfileSaving] = useState(false)
-  const [profileMessage, setProfileMessage] = useState("")
-  const [profileError, setProfileError] = useState("")
+  const { user, isAuthenticated, authLoading, logout, updateUser } = useAuth();
+  const navigate = useNavigate();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [error, setError] = useState("");
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [ordersError, setOrdersError] = useState("");
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profileEmail, setProfileEmail] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
+  const [profileError, setProfileError] = useState("");
 
   useEffect(() => {
-    if (authLoading || !isAuthenticated) return
-    const controller = new AbortController()
+    if (authLoading || !isAuthenticated) return;
+    const controller = new AbortController();
 
     async function loadOrders() {
-      setOrdersLoading(true)
-      setOrdersError("")
+      setOrdersLoading(true);
+      setOrdersError("");
       try {
         const response = await fetch(apiUrl("/api/orders/my-orders"), {
           credentials: "include",
           signal: controller.signal,
-        })
-        const data = await response.json().catch(() => ({}))
+        });
+        const data = await response.json().catch(() => ({}));
         if (!response.ok)
-          throw new Error(data.message || "Could not load your orders.")
-        setOrders(Array.isArray(data.orders) ? data.orders : [])
+          throw new Error(data.message || "Could not load your orders.");
+        setOrders(Array.isArray(data.orders) ? data.orders : []);
       } catch (err) {
         if (err.name !== "AbortError")
-          setOrdersError(err.message || "Could not load your orders.")
+          setOrdersError(err.message || "Could not load your orders.");
       } finally {
-        if (!controller.signal.aborted) setOrdersLoading(false)
+        if (!controller.signal.aborted) setOrdersLoading(false);
       }
     }
 
-    loadOrders()
-    return () => controller.abort()
-  }, [authLoading, isAuthenticated])
+    loadOrders();
+    return () => controller.abort();
+  }, [authLoading, isAuthenticated]);
 
   if (authLoading) {
     return (
       <main className="account-page">
         <p className="account-loading">Loading your account...</p>
       </main>
-    )
+    );
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" replace />;
   }
 
   const startProfileEdit = () => {
-    setProfileName(user?.name || "")
-    setProfileEmail(user?.email || "")
-    setProfileMessage("")
-    setProfileError("")
-    setEditingProfile(true)
-  }
+    setProfileName(user?.name || "");
+    setProfileEmail(user?.email || "");
+    setProfileMessage("");
+    setProfileError("");
+    setEditingProfile(true);
+  };
 
   const saveProfile = async (event) => {
-    event.preventDefault()
-    setProfileSaving(true)
-    setProfileMessage("")
-    setProfileError("")
+    event.preventDefault();
+    setProfileSaving(true);
+    setProfileMessage("");
+    setProfileError("");
     try {
       const response = await fetch(apiUrl("/api/auth/profile"), {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: profileName, email: profileEmail }),
-      })
-      const data = await response.json().catch(() => ({}))
+      });
+      const data = await response.json().catch(() => ({}));
       if (!response.ok)
-        throw new Error(data.message || "Unable to update your profile.")
-      updateUser(data.user)
-      setEditingProfile(false)
-      setProfileMessage("Your profile has been updated successfully.")
+        throw new Error(data.message || "Unable to update your profile.");
+      updateUser(data.user);
+      setEditingProfile(false);
+      setProfileMessage("Your profile has been updated successfully.");
     } catch (err) {
-      setProfileError(err.message || "Unable to update your profile.")
+      setProfileError(err.message || "Unable to update your profile.");
     } finally {
-      setProfileSaving(false)
+      setProfileSaving(false);
     }
-  }
+  };
 
   const handleLogout = async () => {
-    setError("")
-    setLoggingOut(true)
+    setError("");
+    setLoggingOut(true);
 
     try {
-      await logout()
-      navigate("/login", { replace: true })
+      await logout();
+      navigate("/login", { replace: true });
     } catch (err) {
-      setError("Logout failed. Please try again.")
-      console.error("Logout failed:", err)
+      setError("Logout failed. Please try again.");
+      console.error("Logout failed:", err);
     } finally {
-      setLoggingOut(false)
+      setLoggingOut(false);
     }
-  }
+  };
 
   return (
     <main className="account-page">
@@ -202,7 +202,7 @@ function AccountPage() {
             </form>
           )}
 
-          {user?.role === "admin" && (
+          {["admin", "super_admin"].includes(user?.role) && (
             <section className="account-admin-shortcut">
               <div>
                 <span className="account-label">NOIRÉ MANAGEMENT</span>
@@ -398,7 +398,7 @@ function AccountPage() {
         </div>
       </div>
     </main>
-  )
+  );
 }
 
-export default AccountPage
+export default AccountPage;

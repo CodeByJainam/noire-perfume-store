@@ -1,6 +1,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import AdminSidebar from "../../components/admin/AdminSidebar";
+import { apiUrl } from "../../lib/api";
 
 export default function AdminStock() {
   const [products, setProducts] = useState([]);
@@ -11,7 +12,7 @@ export default function AdminStock() {
 
   const load = useCallback(async () => {
     try {
-      const r = await fetch("/api/admin/products", { credentials: "include" });
+      const r = await fetch(apiUrl("/api/admin/products"), { credentials: "include" });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.message || "Could not load products");
       const list = Array.isArray(d) ? d : d.products || [];
@@ -34,7 +35,7 @@ export default function AdminStock() {
     try {
       setError("");
       setMessage("");
-      const r = await fetch(`/api/admin/products/${id}/stock`, {
+      const r = await fetch(apiUrl(`/api/admin/products/${id}/stock`), {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

@@ -1,225 +1,238 @@
-import { useEffect, useState } from "react"
-import { BrowserRouter, Route, Routes } from "react-router-dom"
-import { CartProvider } from "./context/CartContext"
-import "./App.css"
 
-import Footer from "./components/Footer"
-import Header from "./components/Header"
-import HomePage from "./pages/HomePage"
-import CartPage from "./pages/CartPage"
-import ProductsPage from "./pages/ProductsPage"
-import AboutPage from "./pages/AboutPage"
-import BlogPage from "./pages/BlogPage"
-import Collections from "./pages/Collections"
-import CollectionDetails from "./pages/CollectionDetails"
-import Login from "./pages/Login"
-import Signup from "./pages/Signup"
-import ProductDetails from "./pages/ProductDetails"
-import BlogPageDetail from "./pages/BlogPageDetail"
-import CheckoutPage from "./pages/CheckoutPage"
-import OrderSuccess from "./pages/OrderSuccess"
-import { apiUrl } from "./lib/api"
-import { AuthProvider } from "./context/AuthContext"
-import AccountPage from "./pages/AccountPage"
-import AdminPage from "./pages/AdminPage"
-import ForgotPassword from "./pages/ForgotPassword"
+import { useEffect, useState } from "react";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 
-import AdminProtectedRoute from "./components/admin/AdminProtectedRoute"
-import AdminDashboard from "./pages/admin/AdminDashboard"
-import AdminProducts from "./pages/admin/AdminProducts"
-import AdminOrders from "./pages/admin/AdminOrders"
-import AdminUsers from "./pages/admin/AdminUsers"
-import AdminStock from "./pages/admin/AdminStock"
-import SuperAdminManagement from "./pages/admin/SuperAdminManagement"
-import "./pages/admin/Admin.css"
+import { CartProvider } from "./context/CartContext";
+import { AuthProvider } from "./context/AuthContext";
 
-const CART_STORAGE_KEY = "noire-cart"
+import "./App.css";
+import "./pages/admin/Admin.css";
+
+import Footer from "./components/Footer";
+import Header from "./components/Header";
+
+import HomePage from "./pages/HomePage";
+import CartPage from "./pages/CartPage";
+import ProductsPage from "./pages/ProductsPage";
+import AboutPage from "./pages/AboutPage";
+import BlogPage from "./pages/BlogPage";
+import Collections from "./pages/Collections";
+import CollectionDetails from "./pages/CollectionDetails";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import ProductDetails from "./pages/ProductDetails";
+import BlogPageDetail from "./pages/BlogPageDetail";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrderSuccess from "./pages/OrderSuccess";
+import AccountPage from "./pages/AccountPage";
+import ForgotPassword from "./pages/ForgotPassword";
+
+import { apiUrl } from "./lib/api";
+
+import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminProducts from "./pages/admin/AdminProducts";
+import AdminOrders from "./pages/admin/AdminOrders";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminStock from "./pages/admin/AdminStock";
+import SuperAdminManagement from "./pages/admin/SuperAdminManagement";
+
+const CART_STORAGE_KEY = "noire-cart";
 
 function readSavedCart() {
   try {
-    const saved = window.localStorage.getItem(CART_STORAGE_KEY)
-    const parsed = saved ? JSON.parse(saved) : []
-    return Array.isArray(parsed) ? parsed : []
+    const saved = window.localStorage.getItem(CART_STORAGE_KEY);
+    const parsed = saved ? JSON.parse(saved) : [];
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return []
+    return [];
   }
 }
 
 function App() {
-  const [products, setProducts] = useState([])
-  const [cart, setCart] = useState(readSavedCart)
-  const [toast, setToast] = useState("")
-  const [apiNotice, setApiNotice] = useState("")
+  const [products, setProducts] = useState([]);
+  const [cart, setCart] = useState(readSavedCart);
+  const [toast, setToast] = useState("");
+  const [apiNotice, setApiNotice] = useState("");
 
   const showToast = (message) => {
-    setToast(message)
-    window.clearTimeout(showToast.timeoutId)
-    showToast.timeoutId = window.setTimeout(() => setToast(""), 2500)
-  }
+    setToast(message);
+    window.clearTimeout(showToast.timeoutId);
+
+    showToast.timeoutId = window.setTimeout(() => {
+      setToast("");
+    }, 2500);
+  };
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart))
+      window.localStorage.setItem(
+        CART_STORAGE_KEY,
+        JSON.stringify(cart)
+      );
     } catch (error) {
-      console.warn("Could not save the NOIRÉ cart in this browser.", error)
+      console.warn("Could not save NOIRÉ cart.", error);
     }
-  }, [cart])
+  }, [cart]);
 
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
 
-    fetch(apiUrl("/api/health"))
-      .then((response) => (response.ok ? response.json() : null))
-      .then((health) => {
-        if (cancelled || !health) return
-
-        const notices = []
-        if (health.database !== "connected") {
-          notices.push(
-            "MongoDB is disconnected; products will load only after the database reconnects.",
-          )
-        }
-        if (!health.razorpayConfigured) {
-          notices.push(
-            "Add valid Razorpay Test Mode keys before testing checkout.",
-          )
-        }
-        setApiNotice(notices.join(" "))
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setApiNotice(
-            "The API could not be reached. The saved catalogue is shown; checkout needs the API to be available.",
-          )
-        }
-      })
-
-    async function loadProducts() {
+    async function loadData() {
       try {
-        const response = await fetch(apiUrl("/api/products"))
+        const healthResponse = await fetch(apiUrl("/api/health"));
 
-        if (!response.ok) {
-          throw new Error(`Product API returned ${response.status}`)
-        }
+        if (healthResponse.ok) {
+          const health = await healthResponse.json();
 
-        const payload = await response.json()
-        const nextProducts = Array.isArray(payload) ? payload : payload.products
+          const notices = [];
 
-        if (!Array.isArray(nextProducts)) {
-          throw new Error("The product API returned an invalid response.")
-        }
+          if (health.database !== "connected") {
+            notices.push("MongoDB is disconnected.");
+          }
 
-        if (!cancelled) {
-          setProducts(nextProducts)
-          if (nextProducts.length === 0) {
-            setApiNotice((current) => {
-              const emptyMessage =
-                "MongoDB is connected, but no products were found in the database."
-              return current ? `${current} ${emptyMessage}` : emptyMessage
-            })
+          if (!health.razorpayConfigured) {
+            notices.push("Razorpay keys are not configured.");
+          }
+
+          if (!cancelled) {
+            setApiNotice(notices.join(" "));
           }
         }
-      } catch (error) {
-        console.error("Could not load products from MongoDB:", error.message)
+
+        const response = await fetch(apiUrl("/api/products"));
+
+        if (!response.ok) {
+          throw new Error("Unable to load products.");
+        }
+
+        const payload = await response.json();
+        const nextProducts = Array.isArray(payload)
+          ? payload
+          : payload.products;
+
+        if (!Array.isArray(nextProducts)) {
+          throw new Error("Invalid products response.");
+        }
+
         if (!cancelled) {
-          setProducts([])
-          setApiNotice((current) => {
-            const errorMessage =
-              "Products could not be loaded from MongoDB. Check the database connection and try again."
-            return current ? `${current} ${errorMessage}` : errorMessage
-          })
+          setProducts(nextProducts);
+        }
+      } catch (error) {
+        console.error("API error:", error);
+
+        if (!cancelled) {
+          setApiNotice(
+            "Products could not be loaded. Check the backend connection."
+          );
         }
       }
     }
 
-    loadProducts()
+    loadData();
+
     return () => {
-      cancelled = true
-    }
-  }, [])
+      cancelled = true;
+    };
+  }, []);
 
   const addToCart = (product) => {
     if (!product || product.id == null) {
-      showToast("This fragrance could not be added.")
-      return false
+      showToast("This fragrance could not be added.");
+      return false;
     }
 
-    const existing = cart.find((item) => String(item.id) === String(product.id))
+    const existing = cart.find(
+      (item) => String(item.id) === String(product.id)
+    );
 
     if (existing && Number(existing.quantity) >= 99) {
-      showToast("Maximum quantity is 99.")
-      return false
+      showToast("Maximum quantity is 99.");
+      return false;
     }
 
-    setCart((currentCart) => {
-      const currentItem = currentCart.find(
-        (item) => String(item.id) === String(product.id),
-      )
+    setCart((current) => {
+      const found = current.find(
+        (item) => String(item.id) === String(product.id)
+      );
 
-      if (currentItem) {
-        return currentCart.map((item) =>
+      if (found) {
+        return current.map((item) =>
           String(item.id) === String(product.id)
             ? {
                 ...item,
-                quantity: Math.min(99, Number(item.quantity || 1) + 1),
+                quantity: Math.min(
+                  99,
+                  Number(item.quantity || 1) + 1
+                ),
               }
-            : item,
-        )
+            : item
+        );
       }
 
-      return [...currentCart, { ...product, quantity: 1 }]
-    })
+      return [...current, { ...product, quantity: 1 }];
+    });
 
-    showToast(`${product.name} added to your bag`)
-    return true
-  }
+    showToast(`${product.name} added to your bag`);
+    return true;
+  };
 
   const increaseQuantity = (productId, currentQuantity) => {
     if (Number(currentQuantity) >= 99) {
-      showToast("Maximum quantity is 99.")
-      return
+      showToast("Maximum quantity is 99.");
+      return;
     }
 
-    setCart((currentCart) =>
-      currentCart.map((item) =>
+    setCart((current) =>
+      current.map((item) =>
         String(item.id) === String(productId)
-          ? { ...item, quantity: Math.min(99, Number(item.quantity || 1) + 1) }
-          : item,
-      ),
-    )
-  }
+          ? {
+              ...item,
+              quantity: Number(item.quantity || 1) + 1,
+            }
+          : item
+      )
+    );
+  };
 
   const decreaseQuantity = (productId, currentQuantity) => {
     if (Number(currentQuantity) <= 1) {
-      removeFromCart(productId)
-      return
+      removeFromCart(productId);
+      return;
     }
 
-    setCart((currentCart) =>
-      currentCart.map((item) =>
+    setCart((current) =>
+      current.map((item) =>
         String(item.id) === String(productId)
-          ? { ...item, quantity: Math.max(1, Number(item.quantity || 1) - 1) }
-          : item,
-      ),
-    )
-  }
+          ? {
+              ...item,
+              quantity: Number(item.quantity || 1) - 1,
+            }
+          : item
+      )
+    );
+  };
 
   const removeFromCart = (productId) => {
-    setCart((currentCart) =>
-      currentCart.filter((item) => String(item.id) !== String(productId)),
-    )
-    showToast("Product removed from your bag")
-  }
+    setCart((current) =>
+      current.filter(
+        (item) => String(item.id) !== String(productId)
+      )
+    );
+
+    showToast("Product removed from your bag");
+  };
 
   const clearCart = () => {
-    setCart([])
-    showToast("Your bag has been cleared")
-  }
+    setCart([]);
+    showToast("Your bag has been cleared");
+  };
 
   const totalCartItems = cart.reduce(
-    (total, item) => total + Number(item.quantity || 0),
-    0,
-  )
+    (total, item) =>
+      total + Number(item.quantity || 0),
+    0
+  );
 
   return (
     <AuthProvider>
@@ -237,6 +250,7 @@ function App() {
             <div className="container-main">
               <div className="toast-flex">
                 <span className="toast-message">{toast}</span>
+
                 <button
                   type="button"
                   className="toast-close"
@@ -254,29 +268,48 @@ function App() {
           <Routes>
             <Route
               path="/"
-              element={<HomePage products={products} addToCart={addToCart} />}
+              element={
+                <HomePage
+                  products={products}
+                  addToCart={addToCart}
+                />
+              }
             />
+
             <Route
               path="/products"
               element={
-                <ProductsPage products={products} addToCart={addToCart} />
+                <ProductsPage
+                  products={products}
+                  addToCart={addToCart}
+                />
               }
             />
+
             <Route
               path="/shop"
               element={
-                <ProductsPage products={products} addToCart={addToCart} />
+                <ProductsPage
+                  products={products}
+                  addToCart={addToCart}
+                />
               }
             />
+
             <Route
               path="/collection"
               element={
-                <ProductsPage products={products} addToCart={addToCart} />
+                <ProductsPage
+                  products={products}
+                  addToCart={addToCart}
+                />
               }
             />
+
             <Route path="/about" element={<AboutPage />} />
             <Route path="/blog" element={<BlogPage />} />
             <Route path="/blog/:slug" element={<BlogPageDetail />} />
+
             <Route
               path="/cart"
               element={
@@ -289,23 +322,59 @@ function App() {
                 />
               }
             />
+
             <Route path="/collections" element={<Collections />} />
+
             <Route
               path="/collections/:slug"
               element={
-                <CollectionDetails products={products} addToCart={addToCart} />
+                <CollectionDetails
+                  products={products}
+                  addToCart={addToCart}
+                />
               }
             />
+
             <Route
               path="/product/:id"
               element={
-                <ProductDetails products={products} addToCart={addToCart} />
+                <ProductDetails
+                  products={products}
+                  addToCart={addToCart}
+                />
               }
             />
+
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/order-success" element={<OrderSuccess />} />
+            <Route path="/account" element={<AccountPage />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+
+            {/* Admin and Super Admin dashboard */}
+            <Route element={<AdminProtectedRoute />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/products" element={<AdminProducts />} />
+              <Route path="/admin/orders" element={<AdminOrders />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/stock" element={<AdminStock />} />
+            </Route>
+
+            {/* Super Admin only */}
+            <Route
+              element={
+                <AdminProtectedRoute
+                  allowedRoles={["super_admin"]}
+                />
+              }
+            >
+              <Route
+                path="/admin/management"
+                element={<SuperAdminManagement />}
+              />
+            </Route>
+
             <Route
               path="*"
               element={
@@ -315,31 +384,13 @@ function App() {
                 </div>
               }
             />
-            <Route path="/account" element={<AccountPage />} />
-            
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-
-            <Route element={<AdminProtectedRoute />}>
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/products" element={<AdminProducts />} />
-              <Route path="/admin/orders" element={<AdminOrders />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/stock" element={<AdminStock />} />
-            </Route>
-            <Route
-              element={<AdminProtectedRoute allowedRoles={["super_admin"]} />}
-            >
-              <Route
-                path="/admin/management"
-                element={<SuperAdminManagement />}
-              />
-            </Route>
           </Routes>
         </CartProvider>
+
         <Footer />
       </BrowserRouter>
     </AuthProvider>
-  )
+  );
 }
 
-export default App
+export default App;

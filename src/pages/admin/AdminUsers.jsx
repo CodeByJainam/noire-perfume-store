@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
 import AdminSidebar from "../../components/admin/AdminSidebar";
+import { apiUrl } from "../../lib/api";
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -8,7 +9,7 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/admin/users", { credentials: "include" })
+    fetch(apiUrl("/api/admin/users"), { credentials: "include" })
       .then(async (r) => {
         const d = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(d.message || "Users API unavailable");
