@@ -607,6 +607,27 @@ select:focus-visible {
   letter-spacing: 0.11em;
   text-transform: uppercase;
 }
+.stock-label {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 3;
+  padding: 7px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stock-label.low-stock {
+  background: #f4e5c7;
+  color: #80551b;
+}
+
+.stock-label.sold-out {
+  background: #222;
+  color: #fff;
+}
 .product-image-number {
   position: absolute;
   top: 15px;
@@ -664,9 +685,9 @@ select:focus-visible {
   display: block;
   margin-bottom: 7px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.15em;
+  letter-spacing:1px;
   text-transform: uppercase;
 }
 .product-card-body h2 {
@@ -680,7 +701,7 @@ select:focus-visible {
 .product-card-body p {
   margin: 8px 0 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.65;
 }
 .product-price {
@@ -2366,13 +2387,26 @@ select:focus-visible {
   text-decoration: none;
   text-transform: uppercase;
   transition:
-    gap 0.3s ease,
-    color 0.3s ease;
+    color 0.3s ease,
+    gap 0.3s ease;
+    border-bottom: 1px solid var(--muted);
+}
+
+.collection-back-link a::before {
+  content: "←";
+  display: inline-block;
+  font-size: 20px;
+  line-height: 1;
+  transition: transform 0.3s ease;
 }
 
 .collection-back-link a:hover {
+  color: #a16a72;
   gap: 16px;
-  color: #8a4652;
+}
+
+.collection-back-link a:hover::before {
+  transform: translateX(-7px);
 }
 
 /* Loading / Error / Not Found */
@@ -2562,23 +2596,6 @@ select:focus-visible {
 /* Collection detail uses the exact same product grid and card styles as Product List. */
 .collection-detail-products-grid {
   width: 100%;
-}
-
-.collection-back-link {
-  margin-top: 60px;
-  text-align: center;
-}
-
-.collection-back-link a {
-  display: inline-block;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #aaaaaa;
-  font-size: 14px;
-}
-
-.collection-back-link a:hover {
-  border-color: var(--collection-burgundy);
-  color: var(--collection-burgundy);
 }
 
 .collection-not-found {
@@ -3387,7 +3404,7 @@ select:focus-visible {
   border: 1px solid var(--line);
   background: var(--paper);
   color: var(--wine);
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -5537,7 +5554,6 @@ select:focus-visible {
   width: 100%;
   overflow-x: auto;
 }
-
 
 .admin-table th,
 .admin-table td {

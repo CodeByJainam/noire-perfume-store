@@ -1,0 +1,24 @@
+NOIRÉ – Real product catalogue update
+====================================
+
+Included changes
+- server/data/Products.js: 25 named commercial fragrance products.
+- server/seedProducts.js: guarded replacement script; requires explicit --replace.
+- server/models/Product.js: adds brand and sourceUrl fields.
+- Existing frontend, routes, authentication, admin UI, orders and Razorpay files are preserved.
+
+HOW TO APPLY
+1. Unzip this project and open a terminal in the server folder.
+2. Ensure server/.env contains your working MONGO_URI. Never share that value.
+3. Back up your MongoDB database first (Atlas > Database > Backup/export).
+4. Run: node seedProducts.js --replace
+5. Restart backend and refresh the storefront.
+6. Set actual stock values in Admin > Inventory before accepting orders.
+
+IMPORTANT
+- The script deletes all existing Product documents and inserts the 25 catalogue entries. It does not delete users or orders.
+- Historical order item snapshots remain unchanged.
+- Prices are indicative reference prices in INR and may change; verify with authorized suppliers before taking payment.
+- Several image URLs are editorial perfume photography rather than exact branded packshots. Replace them with licensed, exact product images before production.
+- Stock starts at 0 intentionally because actual inventory was not provided.
+- Source URLs are included per product where available.

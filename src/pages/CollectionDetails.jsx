@@ -1,77 +1,33 @@
-import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import ProductCard from "../components/ProductsCard"
-import { apiUrl } from "../lib/api"
 
+function slugify(value = "") {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+}
 
 function CollectionDetails({ products = [], addToCart }) {
   const { slug } = useParams()
 
-  const [collections, setCollections] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-
-  useEffect(() => {
-    const controller = new AbortController()
-
-    async function fetchCollections() {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/collections`, {
-          signal: controller.signal,
-        })
-
-        if (!response.ok) {
-          throw new Error("Unable to load collections.")
-        }
-
-        const data = await response.json()
-
-        if (!Array.isArray(data)) {
-          throw new Error("Invalid collections response.")
-        }
-
-        setCollections(data)
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          setError(err.message || "Something went wrong.")
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    fetchCollections()
-
-    return () => controller.abort()
-  }, [])
-
-  const collection = collections.find((item) => item.slug === slug)
-
+  // Find products belonging to this collection
   const collectionProducts = products.filter(
     (product) =>
-      product.collection?.trim().toLowerCase() ===
-      collection?.name?.trim().toLowerCase(),
+      product.collection && slugify(product.collection) === slugify(slug),
   )
 
-  if (loading) {
-    return (
-      <div className="collection-not-found">
-        <p>Loading collection...</p>
-      </div>
-    )
-  }
+  // Build collection details from actual products
+  const collectionName = collectionProducts[0]?.collection
 
-  if (error) {
-    return (
-      <div className="collection-not-found">
-        <h1>Unable to load collection</h1>
-        <p>{error}</p>
-        <Link to="/collections">Explore Collections</Link>
-      </div>
-    )
-  }
+  const collection = collectionName
+    ? {
+        name: collectionName,
+        image: collectionProducts.find((product) => product.image)?.image || "",
+      }
+    : null
 
   if (!collection) {
     return (
@@ -105,7 +61,9 @@ function CollectionDetails({ products = [], addToCart }) {
 
         <div className="collection-detail-hero-content">
           <p className="collection-detail-eyebrow">THE NOIRÉ COLLECTION</p>
+
           <h1>{collection.name}</h1>
+
           <p>Discover fragrances curated for your signature scent.</p>
         </div>
       </section>
@@ -115,6 +73,7 @@ function CollectionDetails({ products = [], addToCart }) {
           <div className="collection-products-heading">
             <div>
               <p className="collection-detail-eyebrow">CURATED FOR YOU</p>
+
               <h2>Explore {collection.name}</h2>
             </div>
 
@@ -128,7 +87,7 @@ function CollectionDetails({ products = [], addToCart }) {
             <div className="products-grid collection-detail-products-grid">
               {collectionProducts.map((product, index) => (
                 <ProductCard
-                  key={product.id}
+                  key={product._id || product.id}
                   product={product}
                   addToCart={addToCart}
                   index={index}
@@ -139,12 +98,13 @@ function CollectionDetails({ products = [], addToCart }) {
             <div className="collection-empty-state">
               <h3>New fragrances are on their way.</h3>
               <p>There are no products in this collection yet.</p>
+
               <Link to="/products">Explore all fragrances</Link>
             </div>
           )}
 
           <div className="collection-back-link">
-            <Link to="/collections">← Back to All Collections</Link>
+            <Link to="/collections">Back to All Collections</Link>
           </div>
         </div>
       </section>

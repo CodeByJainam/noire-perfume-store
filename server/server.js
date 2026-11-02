@@ -262,6 +262,30 @@ function requireAuth(req, res, next) {
   }
 }
 
+async function requireAdmin(req, res, next) {
+  try {
+    await ensureMongoConnected()
+
+    const user = await User.findById(req.auth?.sub)
+      .select("name email role")
+      .lean()
+
+    if (!user || !["admin", "super_admin"].includes(user.role)) {
+      return res.status(403).json({
+        message: "Admin access required.",
+      })
+    }
+
+    req.adminUser = user
+    return next()
+  } catch (error) {
+    console.error("Admin authorization error:", error.message)
+
+    return res.status(503).json({
+      message: "Could not verify admin access.",
+    })
+  }
+}
 
 app.use("/api/auth", async (req, res, next) => {
   try {
@@ -276,13 +300,12 @@ app.use("/api/auth", async (req, res, next) => {
   }
 })
 
-
 // SIGNUP
 app.post("/api/auth/register", async (req, res) => {
   try {
-    const name = req.body?.name?.trim();
-    const email = req.body?.email?.trim().toLowerCase();
-    const password = req.body?.password;
+    const name = req.body?.name?.trim()
+    const email = req.body?.email?.trim().toLowerCase()
+    const password = req.body?.password
 
     // Validate input
     if (
@@ -298,38 +321,34 @@ app.post("/api/auth/register", async (req, res) => {
     ) {
       return res.status(400).json({
         message: "Enter a valid name, email and password (8–72 characters).",
-      });
+      })
     }
 
     // Read configured admin emails
-    const superAdminEmail = process.env.SUPER_ADMIN_EMAIL
-      ?.trim()
-      .toLowerCase();
+    const superAdminEmail = process.env.SUPER_ADMIN_EMAIL?.trim().toLowerCase()
 
-    const adminEmail = process.env.ADMIN_EMAIL
-      ?.trim()
-      .toLowerCase();
+    const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase()
 
     // Assign role based on configured email
-    let role = "customer";
+    let role = "customer"
 
     if (superAdminEmail && email === superAdminEmail) {
-      role = "super_admin";
+      role = "super_admin"
     } else if (adminEmail && email === adminEmail) {
-      role = "admin";
+      role = "admin"
     }
 
     // Check existing user
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email })
 
     if (existingUser) {
       return res.status(409).json({
         message: "An account with this email already exists.",
-      });
+      })
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 12)
 
     // Create user with assigned role
     const user = await User.create({
@@ -337,13 +356,11 @@ app.post("/api/auth/register", async (req, res) => {
       email,
       password: hashedPassword,
       role,
-    });
-
-
+    })
 
     // Create authentication token
-    const token = createAuthToken(user);
-    setAuthCookie(res, token);
+    const token = createAuthToken(user)
+    setAuthCookie(res, token)
 
     return res.status(201).json({
       message: "Account created successfully.",
@@ -353,28 +370,27 @@ app.post("/api/auth/register", async (req, res) => {
         email: user.email,
         role: user.role,
       },
-    });
+    })
   } catch (error) {
     if (error.code === 11000) {
       return res.status(409).json({
         message: "An account with this email already exists.",
-      });
+      })
     }
 
-    console.error("Signup error:", error.message);
+    console.error("Signup error:", error.message)
 
     return res.status(500).json({
       message: "Unable to create your account.",
-    });
+    })
   }
-});
-
+})
 
 // LOGIN
 app.post("/api/auth/login", async (req, res) => {
   try {
-    const email = req.body?.email?.trim().toLowerCase();
-    const password = req.body?.password;
+    const email = req.body?.email?.trim().toLowerCase()
+    const password = req.body?.password
 
     // Validate input
     if (
@@ -386,52 +402,48 @@ app.post("/api/auth/login", async (req, res) => {
     ) {
       return res.status(400).json({
         message: "Enter your email and password.",
-      });
+      })
     }
 
     // Find user
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ email }).select("+password")
 
     // Verify password
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({
         message: "Invalid email or password.",
-      });
+      })
     }
 
     // Read configured admin emails
     // Read configured admin emails
-    const superAdminEmail = process.env.SUPER_ADMIN_EMAIL
-      ?.trim()
-      .toLowerCase();
+    const superAdminEmail = process.env.SUPER_ADMIN_EMAIL?.trim().toLowerCase()
 
-    const adminEmail = process.env.ADMIN_EMAIL
-      ?.trim()
-      .toLowerCase();
+    const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase()
 
     // Preserve existing role if environment variables are missing.
-    let expectedRole = user.role || "customer";
+    let expectedRole = user.role || "customer"
 
     if (superAdminEmail && email === superAdminEmail) {
-      expectedRole = "super_admin";
+      expectedRole = "super_admin"
     } else if (adminEmail && email === adminEmail) {
-      expectedRole = "admin";
+      expectedRole = "admin"
     }
 
     // Update role only when required.
     if (user.role !== expectedRole) {
-      user.role = expectedRole;
-      await user.save();
+      user.role = expectedRole
+      await user.save()
     }
 
     console.log("LOGIN ROLE RESULT:", {
       email: user.email,
       role: user.role,
-    });
+    })
 
     // Create authentication token after role update
-    const token = createAuthToken(user);
-    setAuthCookie(res, token);
+    const token = createAuthToken(user)
+    setAuthCookie(res, token)
 
     return res.json({
       message: "Login successful.",
@@ -441,15 +453,15 @@ app.post("/api/auth/login", async (req, res) => {
         email: user.email,
         role: user.role,
       },
-    });
+    })
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Login error:", error)
 
     return res.status(500).json({
       message: "Unable to log in. Please try again.",
-    });
+    })
   }
-});
+})
 
 // Forgot Password
 
@@ -718,30 +730,6 @@ app.patch("/api/auth/profile", requireAuth, async (req, res) => {
 })
 
 // Admin APIs: every endpoint is protected on the server, not just by the React route.
-async function requireAdmin(req, res, next) {
-  try {
-    await ensureMongoConnected();
-
-    const user = await User.findById(req.auth?.sub)
-      .select("name email role")
-      .lean();
-
-    if (!user || !["admin", "super_admin"].includes(user.role)) {
-      return res.status(403).json({
-        message: "Admin access required.",
-      });
-    }
-
-    req.adminUser = user;
-    return next();
-  } catch (error) {
-    console.error("Admin authorization error:", error.message);
-
-    return res.status(503).json({
-      message: "Could not verify admin access.",
-    });
-  }
-}
 
 // Admin and Super Admin can view registered accounts.
 app.get("/api/admin/users", requireAuth, requireAdmin, async (_req, res) => {
@@ -749,14 +737,14 @@ app.get("/api/admin/users", requireAuth, requireAdmin, async (_req, res) => {
     const users = await User.find()
       .select("name email role createdAt")
       .sort({ createdAt: -1 })
-      .lean();
+      .lean()
 
-    return res.json({ users });
+    return res.json({ users })
   } catch (error) {
-    console.error("Admin users error:", error.message);
-    return res.status(500).json({ message: "Unable to load users." });
+    console.error("Admin users error:", error.message)
+    return res.status(500).json({ message: "Unable to load users." })
   }
-});
+})
 
 // Only Super Admin can change account roles.
 app.patch(
@@ -764,75 +752,75 @@ app.patch(
   requireAuth,
   async (req, res, next) => {
     try {
-      await ensureMongoConnected();
+      await ensureMongoConnected()
 
       const currentUser = await User.findById(req.auth?.sub)
         .select("role")
-        .lean();
+        .lean()
 
       if (!currentUser || currentUser.role !== "super_admin") {
         return res.status(403).json({
           message: "Only Super Admin can change account roles.",
-        });
+        })
       }
 
-      return next();
+      return next()
     } catch (error) {
-      console.error("Super Admin authorization error:", error.message);
+      console.error("Super Admin authorization error:", error.message)
 
       return res.status(503).json({
         message: "Could not verify Super Admin access.",
-      });
+      })
     }
   },
   async (req, res) => {
     try {
-      const { id } = req.params;
-      const { role } = req.body || {};
+      const { id } = req.params
+      const { role } = req.body || {}
 
       if (!mongoose.isValidObjectId(id)) {
         return res.status(400).json({
           message: "Invalid user ID.",
-        });
+        })
       }
 
       if (!["customer", "admin"].includes(role)) {
         return res.status(400).json({
           message: "Role must be customer or admin. Super Admin is protected.",
-        });
+        })
       }
 
       if (String(id) === String(req.auth.sub)) {
         return res.status(400).json({
           message: "You cannot change your own role.",
-        });
+        })
       }
 
       const targetUser = await User.findByIdAndUpdate(
         id,
         { $set: { role } },
-        { new: true, runValidators: true }
-      ).select("name email role");
+        { new: true, runValidators: true },
+      ).select("name email role")
 
       if (!targetUser) {
         return res.status(404).json({
           message: "User not found.",
-        });
+        })
       }
 
       return res.json({
         message: "Role updated successfully.",
         user: targetUser,
-      });
+      })
     } catch (error) {
-      console.error("Role update error:", error.message);
+      console.error("Role update error:", error.message)
 
       return res.status(500).json({
         message: "Unable to update user role.",
-      });
+      })
     }
-  }
-);
+  },
+)
 
 app.get("/api/admin/orders", requireAuth, requireAdmin, async (_req, res) => {
   try {
@@ -886,8 +874,8 @@ app.post(
       const match =
         typeof req.body?.dataUrl === "string"
           ? req.body.dataUrl.match(
-            /^data:(image\/(?:jpeg|png|webp|avif));base64,([A-Za-z0-9+/=]+)$/,
-          )
+              /^data:(image\/(?:jpeg|png|webp|avif));base64,([A-Za-z0-9+/=]+)$/,
+            )
           : null
       if (!match)
         return res
@@ -917,105 +905,177 @@ app.post(
   },
 )
 
+// ADMIN PRODUCT MANAGEMENT
+// Supports MongoDB _id (used by the dashboard) and the product's public id.
+function productFilter(productId) {
+  return mongoose.isValidObjectId(productId)
+    ? { $or: [{ _id: productId }, { id: String(productId) }] }
+    : { id: String(productId) }
+}
+
+function makeProductId(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+}
+
 app.get("/api/admin/products", requireAuth, requireAdmin, async (_req, res) => {
   try {
-    return res.json({
-      products: await Product.find().sort({ createdAt: -1 }).lean(),
-    })
+    await ensureMongoConnected()
+    const products = await Product.find().sort({ createdAt: -1 }).lean()
+    return res.json({ products })
   } catch (error) {
-    console.error("Admin products error:", error.message)
+    console.error("Admin products error:", error)
     return res.status(500).json({ message: "Unable to load products." })
   }
 })
 
 app.post("/api/admin/products", requireAuth, requireAdmin, async (req, res) => {
   try {
-    const {
-      id,
-      name,
-      price,
-      category,
-      collection,
-      description,
-      image,
-      size,
-      concentration,
-      notes,
-      badge,
-    } = req.body || {}
+    await ensureMongoConnected()
+    const body = req.body || {}
+    const name = String(body.name || "").trim()
+    const price = Number(body.price)
+
     if (
-      !String(id || "").trim() ||
-      !String(name || "").trim() ||
-      !Number.isFinite(Number(price)) ||
-      Number(price) < 0
-    )
+      !name ||
+      body.price === undefined ||
+      body.price === "" ||
+      !Number.isFinite(price) ||
+      price < 0
+    ) {
+      return res.status(400).json({
+        message: "Product name and a valid non-negative price are required.",
+      })
+    }
+
+    const slug = makeProductId(body.slug || name)
+    const id = makeProductId(body.id || slug)
+
+    if (!id || !slug) {
       return res
         .status(400)
-        .json({ message: "Product ID, name and a valid price are required." })
+        .json({ message: "A valid product name or slug is required." })
+    }
+
     const product = await Product.create({
-      id: String(id).trim(),
-      name: String(name).trim(),
-      price: Number(price),
-      category,
-      collection,
-      description,
-      image,
-      size,
-      concentration,
-      notes,
-      badge,
+      id,
+      name,
+      slug,
+      price,
+      category: body.category || "Fragrance",
+      collection: String(body.collection || "").trim(),
+      notes: body.notes || "",
+      description: body.description || "",
+      image: body.image || "",
+      images: Array.isArray(body.images) ? body.images : [],
+      size: body.size || "100 ml",
+      concentration: body.concentration || "Eau De Parfum",
+      badge: body.badge || "",
+      stock: body.stock === undefined ? 0 : Number(body.stock),
     })
-    return res.status(201).json({ message: "Product created.", product })
+
+    return res
+      .status(201)
+      .json({ message: "Product created successfully.", product })
   } catch (error) {
-    if (error.code === 11000)
-      return res
-        .status(409)
-        .json({ message: "A product with this ID already exists." })
-    console.error("Admin create product error:", error.message)
+    console.error("Admin create product error:", error)
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message:
+          "A product with this ID already exists. Change the slug and try again.",
+      })
+    }
+    if (error.name === "ValidationError" || error.name === "CastError") {
+      return res.status(400).json({ message: error.message })
+    }
     return res.status(500).json({ message: "Unable to create product." })
   }
 })
 
+async function updateAdminProduct(req, res) {
+  try {
+    await ensureMongoConnected()
+    const body = req.body || {}
+    const allowedFields = [
+      "name",
+      "slug",
+      "price",
+      "category",
+      "collection",
+      "notes",
+      "description",
+      "image",
+      "images",
+      "size",
+      "concentration",
+      "badge",
+      "stock",
+    ]
+    const updates = {}
+
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) updates[field] = body[field]
+    }
+
+    if (updates.name !== undefined) updates.name = String(updates.name).trim()
+    if (updates.slug !== undefined) updates.slug = makeProductId(updates.slug)
+    if (updates.price !== undefined) {
+      updates.price = Number(updates.price)
+      if (!Number.isFinite(updates.price) || updates.price < 0) {
+        return res
+          .status(400)
+          .json({ message: "Enter a valid non-negative price." })
+      }
+    }
+    if (updates.stock !== undefined) {
+      updates.stock = Number(updates.stock)
+      if (!Number.isSafeInteger(updates.stock) || updates.stock < 0) {
+        return res
+          .status(400)
+          .json({ message: "Stock must be a non-negative whole number." })
+      }
+    }
+    if (updates.collection !== undefined)
+      updates.collection = String(updates.collection).trim()
+
+    const product = await Product.findOneAndUpdate(
+      productFilter(req.params.id),
+      { $set: updates },
+      { new: true, runValidators: true },
+    )
+
+    if (!product) return res.status(404).json({ message: "Product not found." })
+    return res.json({ message: "Product updated successfully.", product })
+  } catch (error) {
+    console.error("Admin update product error:", error)
+    if (error.code === 11000) {
+      return res
+        .status(409)
+        .json({ message: "That product ID or slug is already in use." })
+    }
+    if (error.name === "ValidationError" || error.name === "CastError") {
+      return res.status(400).json({ message: error.message })
+    }
+    return res.status(500).json({ message: "Unable to update product." })
+  }
+}
+
+app.put(
+  "/api/admin/products/:id",
+  requireAuth,
+  requireAdmin,
+  updateAdminProduct,
+)
 app.patch(
   "/api/admin/products/:id",
   requireAuth,
   requireAdmin,
-  async (req, res) => {
-    try {
-      const updates = {}
-      for (const key of [
-        "name",
-        "price",
-        "category",
-        "collection",
-        "description",
-        "image",
-        "size",
-        "concentration",
-        "notes",
-        "badge",
-      ]) {
-        if (req.body?.[key] !== undefined)
-          updates[key] = key === "price" ? Number(req.body[key]) : req.body[key]
-      }
-      if (
-        updates.price !== undefined &&
-        (!Number.isFinite(updates.price) || updates.price < 0)
-      )
-        return res.status(400).json({ message: "Enter a valid price." })
-      const product = await Product.findOneAndUpdate(
-        { id: req.params.id },
-        { $set: updates },
-        { new: true, runValidators: true },
-      )
-      if (!product)
-        return res.status(404).json({ message: "Product not found." })
-      return res.json({ message: "Product updated.", product })
-    } catch (error) {
-      console.error("Admin update product error:", error.message)
-      return res.status(500).json({ message: "Unable to update product." })
-    }
-  },
+  updateAdminProduct,
 )
 
 app.delete(
@@ -1024,13 +1084,63 @@ app.delete(
   requireAdmin,
   async (req, res) => {
     try {
-      const product = await Product.findOneAndDelete({ id: req.params.id })
+      await ensureMongoConnected()
+      const product = await Product.findOneAndDelete(
+        productFilter(req.params.id),
+      )
       if (!product)
         return res.status(404).json({ message: "Product not found." })
-      return res.json({ message: "Product deleted." })
+      return res.json({ message: "Product deleted successfully." })
     } catch (error) {
-      console.error("Admin delete product error:", error.message)
+      console.error("Admin delete product error:", error)
       return res.status(500).json({ message: "Unable to delete product." })
+    }
+  },
+) // UPDATE PRODUCT STOCK
+app.patch(
+  "/api/admin/products/:id/stock",
+  requireAuth,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      await ensureMongoConnected()
+
+      const { stock } = req.body
+
+      if (
+        stock === undefined ||
+        !Number.isFinite(Number(stock)) ||
+        Number(stock) < 0
+      ) {
+        return res.status(400).json({
+          message: "Please provide a valid stock quantity",
+        })
+      }
+
+      const product = await Product.findOneAndUpdate(
+        {
+          $or: [{ _id: req.params.id }, { id: req.params.id }],
+        },
+        { $set: { stock: Number(stock) } },
+        { new: true, runValidators: true },
+      )
+
+      if (!product) {
+        return res.status(404).json({
+          message: "Product not found",
+        })
+      }
+
+      res.json({
+        message: "Stock updated successfully",
+        product,
+      })
+    } catch (error) {
+      console.error("Stock update error:", error)
+
+      res.status(500).json({
+        message: "Unable to update stock",
+      })
     }
   },
 )
@@ -1038,18 +1148,18 @@ app.delete(
 // Products are served exclusively from MongoDB; no local demo catalogue fallback.
 app.get("/api/products", async (_req, res) => {
   try {
-    await ensureMongoConnected();
+    await ensureMongoConnected()
 
-    const products = await Product.find().lean();
-    return res.json(products);
+    const products = await Product.find().lean()
+    return res.json(products)
   } catch (error) {
-    console.error("Fetch products error:", error.message);
+    console.error("Fetch products error:", error.message)
 
     return res.status(503).json({
-      message: "Product database is temporarily unavailable."
-    });
+      message: "Product database is temporarily unavailable.",
+    })
   }
-});
+})
 
 // Get collections dynamically from MongoDB products
 
@@ -1204,7 +1314,40 @@ app.delete("/api/cart", (_req, res) => {
   cart = []
   return res.json(cart)
 })
+// ADMIN DASHBOARD SUMMARY
+app.get("/api/admin/summary", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    await ensureMongoConnected()
 
+    const totalOrders = await Order.countDocuments()
+
+    const revenueResult = await Order.aggregate([
+      {
+        $match: {
+          paymentStatus: "paid",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          revenue: { $sum: "$total" },
+        },
+      },
+    ])
+
+    const revenue = revenueResult[0]?.revenue || 0
+
+    res.json({
+      totalOrders,
+      revenue,
+    })
+  } catch (error) {
+    console.error("Admin summary error:", error)
+    res.status(500).json({
+      message: "Could not load dashboard summary",
+    })
+  }
+})
 // Create a Razorpay order and persist a pending order for the authenticated customer.
 app.post("/api/payments/create-order", requireAuth, async (req, res) => {
   try {

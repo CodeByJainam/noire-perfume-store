@@ -1,40 +1,36 @@
-
-import { useCallback, useEffect, useState } from "react";
-import AdminSidebar from "../../components/admin/AdminSidebar";
-import { useAuth } from "../../context/AuthContext";
-import { apiUrl } from "../../lib/api";
+import { useCallback, useEffect, useState } from "react"
+import AdminSidebar from "../../components/admin/AdminSidebar"
+import { useAuth } from "../../context/AuthContext"
+import { apiUrl } from "../../lib/api"
 
 export default function SuperAdminManagement() {
-  const { user, authLoading } = useAuth();
+  const { user, authLoading } = useAuth()
 
-  const [users, setUsers] = useState([]);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [updatingId, setUpdatingId] = useState("");
+  const [users, setUsers] = useState([])
+  const [error, setError] = useState("")
+  const [message, setMessage] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [updatingId, setUpdatingId] = useState("")
 
   const loadUsers = useCallback(async () => {
     try {
-      setLoading(true);
-      setError("");
+      setLoading(true)
+      setError("")
 
-      const response = await fetch(
-        apiUrl("/api/admin/users"),
-        {
-          method: "GET",
-          credentials: "include",
-          headers: {
-            Accept: "application/json",
-          },
-        }
-      );
+      const response = await fetch(apiUrl("/api/admin/users"), {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+        },
+      })
 
-      const data = await response.json().catch(() => ({}));
+      const data = await response.json().catch(() => ({}))
 
       if (!response.ok) {
         throw new Error(
-          data.message || `Unable to load users (${response.status})`
-        );
+          data.message || `Unable to load users (${response.status})`,
+        )
       }
 
       setUsers(
@@ -42,90 +38,81 @@ export default function SuperAdminManagement() {
           ? data
           : Array.isArray(data.users)
             ? data.users
-            : []
-      );
+            : [],
+      )
     } catch (error) {
-      console.error("Super Admin users error:", error);
-      setError(error.message || "Could not load users.");
+      console.error("Super Admin users error:", error)
+      setError(error.message || "Could not load users.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
     if (!authLoading && user?.role === "super_admin") {
-      loadUsers();
+      loadUsers()
     } else if (!authLoading) {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [authLoading, user, loadUsers]);
+  }, [authLoading, user, loadUsers])
 
   const changeRole = async (target, newRole) => {
-    const id = target._id || target.id;
+    const id = target._id || target.id
 
     if (!id) {
-      setError("User ID is missing.");
-      return;
+      setError("User ID is missing.")
+      return
     }
 
     if (!["customer", "admin"].includes(newRole)) {
-      setError("Invalid role selected.");
-      return;
+      setError("Invalid role selected.")
+      return
     }
 
     const confirmed = window.confirm(
-      `Change ${target.name || target.email} to ${newRole}?`
-    );
+      `Change ${target.name || target.email} to ${newRole}?`,
+    )
 
     if (!confirmed) {
-      return;
+      return
     }
 
     try {
-      setError("");
-      setMessage("");
-      setUpdatingId(String(id));
+      setError("")
+      setMessage("")
+      setUpdatingId(String(id))
 
-      const response = await fetch(
-        apiUrl(`/api/admin/users/${id}/role`),
-        {
-          method: "PATCH",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            role: newRole,
-          }),
-        }
-      );
+      const response = await fetch(apiUrl(`/api/admin/users/${id}/role`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          role: newRole,
+        }),
+      })
 
-      const data = await response.json().catch(() => ({}));
+      const data = await response.json().catch(() => ({}))
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Role update failed."
-        );
+        throw new Error(data.message || "Role update failed.")
       }
 
-      setMessage("Role updated successfully.");
+      setMessage("Role updated successfully.")
 
-      await loadUsers();
+      await loadUsers()
     } catch (error) {
-      console.error("Role update error:", error);
-      setError(error.message || "Unable to update role.");
+      console.error("Role update error:", error)
+      setError(error.message || "Unable to update role.")
     } finally {
-      setUpdatingId("");
+      setUpdatingId("")
     }
-  };
+  }
 
   if (authLoading) {
-    return (
-      <div className="admin-loading">
-        Loading NOIRÉ Admin…
-      </div>
-    );
+    return <div className="admin-loading">Loading NOIRÉ Admin…</div>
   }
 
   if (user?.role !== "super_admin") {
@@ -135,12 +122,10 @@ export default function SuperAdminManagement() {
 
         <main className="noire-main">
           <h1>Access denied</h1>
-          <p>
-            Only Super Admin can manage account roles.
-          </p>
+          <p>Only Super Admin can manage account roles.</p>
         </main>
       </div>
-    );
+    )
   }
 
   return (
@@ -154,16 +139,11 @@ export default function SuperAdminManagement() {
 
             <h1>Super Admin</h1>
 
-            <p>
-              Manage normal customer and admin roles.
-            </p>
+            <p>Manage normal customer and admin roles.</p>
           </div>
         </header>
 
-        <p className="noire-warning">
-          Never promote accounts to Super Admin from this screen.
-          Configure the owner email on the server.
-        </p>
+   
 
         {error && (
           <p className="noire-error" role="alert">
@@ -194,14 +174,11 @@ export default function SuperAdminManagement() {
 
                 <tbody>
                   {users.map((account) => {
-                    const id = account._id || account.id;
+                    const id = account._id || account.id
 
-                    const isSelf =
-                      String(id) ===
-                      String(user.id || user._id);
+                    const isSelf = String(id) === String(user.id || user._id)
 
-                    const protectedAccount =
-                      account.role === "super_admin";
+                    const protectedAccount = account.role === "super_admin"
 
                     return (
                       <tr key={id}>
@@ -226,31 +203,22 @@ export default function SuperAdminManagement() {
                               value={account.role || "customer"}
                               disabled={updatingId === String(id)}
                               onChange={(event) =>
-                                changeRole(
-                                  account,
-                                  event.target.value
-                                )
+                                changeRole(account, event.target.value)
                               }
                             >
-                              <option value="customer">
-                                Customer
-                              </option>
+                              <option value="customer">Customer</option>
 
-                              <option value="admin">
-                                Admin
-                              </option>
+                              <option value="admin">Admin</option>
                             </select>
                           )}
                         </td>
                       </tr>
-                    );
+                    )
                   })}
 
                   {!users.length && (
                     <tr>
-                      <td colSpan="4">
-                        No users found.
-                      </td>
+                      <td colSpan="4">No users found.</td>
                     </tr>
                   )}
                 </tbody>
@@ -259,16 +227,12 @@ export default function SuperAdminManagement() {
           )}
 
           {!loading && (
-            <button
-              type="button"
-              onClick={loadUsers}
-              disabled={loading}
-            >
+            <button type="button" className="noire-refresh-btn" onClick={loadUsers} disabled={loading}>
               Refresh users
             </button>
           )}
         </section>
       </main>
     </div>
-  );
+  )
 }

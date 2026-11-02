@@ -32,20 +32,29 @@ function ProductsCard({ product, addToCart, index = 0 }) {
             }}
           />
         </Link>
+        {product.stock === 0 ? (
+          <span className="stock-label sold-out">Sold Out</span>
+        ) : product.stock <= 10 ? (
+          <span className="stock-label low-stock">
+            Only {product.stock} left
+          </span>
+        ) : null}
 
         {product.badge && (
           <span className="product-badge">{product.badge}</span>
         )}
 
-        <button
-          type="button"
-          className={`product-quick-add${added ? " is-added" : ""}`}
-          onClick={handleAdd}
-          aria-label={`Add ${product.name} to bag`}
-        >
-          <span>{added ? "Added" : "Add to bag"}</span>
-          <span>{added ? "✓" : "+"}</span>
-        </button>
+        {product.stock > 0 && (
+          <button
+            type="button"
+            className={`product-quick-add${added ? " is-added" : ""}`}
+            onClick={handleAdd}
+            aria-label={`Add ${product.name} to bag`}
+          >
+            <span>{added ? "Added" : "Add to bag"}</span>
+            <span>{added ? "✓" : "+"}</span>
+          </button>
+        )}
       </div>
 
       <div className="product-card-body">
