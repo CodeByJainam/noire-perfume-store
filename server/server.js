@@ -1755,12 +1755,26 @@ if (require.main === module) {
     console.log(`NOIRÉ API running at http://localhost:${PORT}`)
   })
 }
-console.log("EXPRESS APP LOADED");
+console.log("SERVER FILE:", __filename);
+
+const registeredRoutes = app._router.stack
+  .filter((layer) => layer.route)
+  .map((layer) => ({
+    path: layer.route.path,
+    methods: Object.keys(layer.route.methods),
+  }));
+
+console.log("TOTAL ROUTES:", registeredRoutes.length);
+console.log("ALL REGISTERED ROUTES:", JSON.stringify(registeredRoutes));
 console.log(
-  "REGISTERED ROUTES:",
-  app._router?.stack
-    ?.filter((layer) => layer.route)
-    .map((layer) => layer.route.path)
+  "ADMIN ROUTES:",
+  JSON.stringify(
+    registeredRoutes.filter((route) =>
+      String(route.path).includes("/api/admin")
+    )
+  )
 );
+
+
 // Export the Express app for Vercel.
 module.exports = app
