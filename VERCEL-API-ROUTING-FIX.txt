@@ -1,0 +1,45 @@
+NOIRE - VERCEL API ROUTING FIX
+
+WHAT CHANGED
+1. Added explicit Vercel function entry files for the app's common API endpoints, including:
+   - /api/health
+   - /api/products and /api/collections
+   - /api/auth/*
+   - /api/admin/users, /api/admin/products, /api/admin/orders, /api/admin/summary
+   - /api/orders/my-orders
+   - /api/payments/*
+2. Added explicit dynamic entry files for ID/token-based endpoints while retaining the catch-all handlers.
+3. Product image uploads now return the validated image data URL so the frontend saves it in the Product document in MongoDB. This avoids depending on Vercel's temporary filesystem for persistent product images.
+
+DEPLOY
+1. Extract this ZIP.
+2. Copy the project files into your existing Git working folder. Keep your own .env files; this ZIP intentionally does not contain secrets or .git history.
+3. From the project root run:
+   npm install
+   npm run build
+4. Commit and push the changed files to the same GitHub branch connected to Vercel.
+5. Wait for the Vercel deployment to finish.
+
+KEEP THESE VERCEL ENVIRONMENT VARIABLES CONFIGURED
+MONGO_URI
+AUTH_JWT_SECRET
+CLIENT_URL (include https://noire-perfume-store-five.vercel.app)
+RAZORPAY_KEY_ID
+RAZORPAY_KEY_SECRET
+RESEND_API_KEY (if email sending is enabled)
+RESEND_FROM_EMAIL (if email sending is enabled)
+
+TEST AFTER DEPLOYMENT
+- https://noire-perfume-store-five.vercel.app/api/health
+- https://noire-perfume-store-five.vercel.app/api/products
+
+Expected routing behavior:
+- /api/health returns JSON with HTTP 200.
+- /api/products reaches the products handler (it can return a database error if MongoDB is unavailable, but must not be a Vercel 404).
+- Admin endpoints return 401 when logged out, not 404. When logged in as an admin, they should return their normal data.
+
+IMAGE NOTE
+Previously stored /uploads/<filename> links cannot be recovered by this code change if their files only existed on a previous Vercel instance's temporary filesystem. Re-upload those images from the Admin page or replace their URLs with valid hosted image URLs. Newly uploaded images are now stored as data URLs in MongoDB.
+
+SECURITY
+The ZIP intentionally excludes .git, node_modules, and server/.env. Do not commit secrets. Keep production credentials in Vercel Project Settings > Environment Variables.
