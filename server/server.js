@@ -943,10 +943,14 @@ app.post(
           .status(400)
           .json({ message: "Image must be 5 MB or smaller." })
       }
-      // Vercel's filesystem is ephemeral and Express static files are not
-      // served from server/uploads in production. Return the validated data URL
-      // so the admin form can save it directly in the Product document in MongoDB.
-      return res.status(201).json({ image: match[0] })
+      const filename = `${crypto.randomUUID()}${allowedImageMimeTypes[mimeType]}`
+      await fs.promises.writeFile(
+        path.join(uploadsDirectory, filename),
+        imageBuffer,
+        { flag: "wx" },
+      )
+      const baseUrl = `${req.protocol}://${req.get("host")}`
+      return res.status(201).json({ image: `${baseUrl}/uploads/${filename}` })
     } catch (error) {
       console.error("Admin image upload error:", error.message)
       return res
