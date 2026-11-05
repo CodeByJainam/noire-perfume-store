@@ -56,7 +56,7 @@ const allowedOrigins = [
     .split(",")
     .map((origin) => origin.trim().replace(/\/+$/, ""))
     .filter(Boolean),
-  "https://noire-perfume-store-five.vercel.app/",
+  "https://noire-perfume-store-five.vercel.app",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
 ]
@@ -929,8 +929,8 @@ app.post(
       const match =
         typeof req.body?.dataUrl === "string"
           ? req.body.dataUrl.match(
-              /^data:(image\/(?:jpeg|png|webp|avif));base64,([A-Za-z0-9+/=]+)$/,
-            )
+            /^data:(image\/(?:jpeg|png|webp|avif));base64,([A-Za-z0-9+/=]+)$/,
+          )
           : null
       if (!match)
         return res
@@ -1516,20 +1516,20 @@ app.post("/api/payments/create-order", requireAuth, async (req, res) => {
     return res.status(201).json(
       isDemoPaymentMode
         ? {
-            paymentMode: "demo",
-            orderId: savedOrder.orderNumber,
-            amount,
-            currency: "INR",
-            orderNumber: savedOrder.orderNumber,
-          }
+          paymentMode: "demo",
+          orderId: savedOrder.orderNumber,
+          amount,
+          currency: "INR",
+          orderNumber: savedOrder.orderNumber,
+        }
         : {
-            paymentMode: "razorpay",
-            keyId: process.env.RAZORPAY_KEY_ID,
-            orderId: razorpayOrder.id,
-            amount: razorpayOrder.amount,
-            currency: razorpayOrder.currency,
-            orderNumber: savedOrder.orderNumber,
-          },
+          paymentMode: "razorpay",
+          keyId: process.env.RAZORPAY_KEY_ID,
+          orderId: razorpayOrder.id,
+          amount: razorpayOrder.amount,
+          currency: razorpayOrder.currency,
+          orderNumber: savedOrder.orderNumber,
+        },
     )
   } catch (error) {
     console.error("Create order error:", error.message)
