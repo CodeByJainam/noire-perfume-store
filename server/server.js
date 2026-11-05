@@ -1757,7 +1757,9 @@ if (require.main === module) {
 }
 console.log("SERVER FILE:", __filename);
 
-const registeredRoutes = app._router.stack
+const routeStack = app.router?.stack || app._router?.stack || [];
+
+const registeredRoutes = routeStack
   .filter((layer) => layer.route)
   .map((layer) => ({
     path: layer.route.path,
@@ -1765,7 +1767,7 @@ const registeredRoutes = app._router.stack
   }));
 
 console.log("TOTAL ROUTES:", registeredRoutes.length);
-console.log("ALL REGISTERED ROUTES:", JSON.stringify(registeredRoutes));
+
 console.log(
   "ADMIN ROUTES:",
   JSON.stringify(
@@ -1775,6 +1777,5 @@ console.log(
   )
 );
 
-
 // Export the Express app for Vercel.
-module.exports = app
+module.exports = app;
