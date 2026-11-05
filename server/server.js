@@ -1410,6 +1410,12 @@ app.get("/api/admin/summary", requireAuth, requireAdmin, async (req, res) => {
     })
   }
 })
+app.get("/api/test-admin-route", (req, res) => {
+  return res.json({
+    success: true,
+    message: "Admin API routing is working"
+  });
+});
 // Create a Razorpay order and persist a pending order for the authenticated customer.
 app.post("/api/payments/create-order", requireAuth, async (req, res) => {
   try {
