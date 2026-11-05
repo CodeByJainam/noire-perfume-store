@@ -51,53 +51,55 @@ function AboutPage() {
         </div>
       </section>
       <section className="story-values">
-        <div className="story-values-image">
-          <img
-            src="https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=1200&q=90"
-            alt="Minimal perfume and botanical ingredients"
-            loading="lazy"
-          />
-        </div>
-        <div className="story-values-copy">
-          <span className="section-eyebrow">
-            <i /> Our point of view
-          </span>
-          <h2>
-            Considered
-            <br />
-            <em>in every detail.</em>
-          </h2>
-          <div className="value-row">
-            <span>01</span>
-            <div>
-              <h3>Intention over excess</h3>
-              <p>
-                Every detail should have a reason to be there, from the first
-                impression to the final note.
-              </p>
+        
+          <div className="story-values-image">
+            <img
+              src="https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=1200&q=90"
+              alt="Minimal perfume and botanical ingredients"
+              loading="lazy"
+            />
+          </div>
+          <div className="story-values-copy">
+            <span className="section-eyebrow">
+              <i /> Our point of view
+            </span>
+            <h2>
+              Considered
+              <br />
+              <em>in every detail.</em>
+            </h2>
+            <div className="value-row">
+              <span>01</span>
+              <div>
+                <h3>Intention over excess</h3>
+                <p>
+                  Every detail should have a reason to be there, from the first
+                  impression to the final note.
+                </p>
+              </div>
+            </div>
+            <div className="value-row">
+              <span>02</span>
+              <div>
+                <h3>Character over trends</h3>
+                <p>
+                  We look for compositions with a point of view, not a shelf
+                  life tied to a trend.
+                </p>
+              </div>
+            </div>
+            <div className="value-row">
+              <span>03</span>
+              <div>
+                <h3>Your story comes first</h3>
+                <p>
+                  The best fragrance leaves room for the person wearing it to
+                  make it their own.
+                </p>
+              </div>
             </div>
           </div>
-          <div className="value-row">
-            <span>02</span>
-            <div>
-              <h3>Character over trends</h3>
-              <p>
-                We look for compositions with a point of view, not a shelf life
-                tied to a trend.
-              </p>
-            </div>
-          </div>
-          <div className="value-row">
-            <span>03</span>
-            <div>
-              <h3>Your story comes first</h3>
-              <p>
-                The best fragrance leaves room for the person wearing it to make
-                it their own.
-              </p>
-            </div>
-          </div>
-        </div>
+      
       </section>
       <section className="story-bottom">
         <span className="section-eyebrow">

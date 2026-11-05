@@ -18,16 +18,16 @@ function Footer() {
           <div className="footer-column">
             <span className="footer-heading">Explore</span>
             <Link to="/products">Shop all</Link>
-            <Link to="/collection">Collections</Link>
+            <Link to="/collections">Collections</Link>
             <Link to="/about">Our story</Link>
             <Link to="/blog">The scent journal</Link>
           </div>
           <div className="footer-column">
             <span className="footer-heading">Customer care</span>
-            <Link to="/about">Contact & story</Link>
+            <Link to="/contact">Contact & story</Link>
             <Link to="/cart">Your bag</Link>
-            <Link to="/">Shipping & returns</Link>
-            <Link to="/">FAQs</Link>
+            <Link to="/shipping-returns">Shipping & returns</Link>
+            <Link to="/faqs">FAQs</Link>
           </div>
           <div className="footer-newsletter">
             <span className="footer-heading">A note from NOIRÉ</span>

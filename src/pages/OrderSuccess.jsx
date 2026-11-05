@@ -10,7 +10,7 @@ export default function OrderSuccess() {
 
         <h1>Thank you for your order.</h1>
 
-        <p>Your payment has been verified successfully.</p>
+        <p>{state?.demo ? "Your demo payment was successful. No real money was charged." : "Your payment has been verified successfully."}</p>
 
         {state?.orderId && (
           <p>

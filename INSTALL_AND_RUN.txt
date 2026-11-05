@@ -82,3 +82,21 @@ ADMIN DASHBOARD + PRODUCT IMAGE UPLOAD
 - The dashboard supports adding products, editing all product fields, uploading product images (JPG/PNG/WEBP/AVIF up to 5 MB), deleting products, viewing customers/orders, and changing order status.
 - Local uploads are stored in server/uploads. This is suitable for local development. Vercel/serverless uploads are written to temporary storage only and are not persistent; configure persistent object storage (for example Cloudinary or S3) before relying on uploaded files in production.
 - Keep server/.env private. It is intentionally not included in this source ZIP.
+
+
+NOIRE DEMO PAYMENT MODE (LOCAL DEVELOPMENT ONLY)
+------------------------------------------------
+To test checkout without Razorpay credentials or PAN verification, open
+server/.env and set:
+
+PAYMENT_MODE=demo
+ALLOW_DEMO_PAYMENTS=true
+
+Restart the backend after changing the environment file. Demo checkout
+creates a normal pending MongoDB order, then lets you simulate success or
+failure. Successful demo orders are marked paid with a demo_pay_ reference;
+failed demo orders are marked failed. No money is collected and no Razorpay
+transaction takes place.
+
+Do not enable ALLOW_DEMO_PAYMENTS on a deployed/production server. For real
+Razorpay sandbox testing, use PAYMENT_MODE=razorpay and Razorpay Test Mode keys.

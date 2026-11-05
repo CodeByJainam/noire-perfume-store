@@ -204,202 +204,214 @@ function ProductDetails({ products = [], addToCart }) {
   return (
     <main className="pdp-main">
       <div className="pdp-topline">
-        <div className="pdp-topline-inner">
-          <Link to="/" className="pdp-breadcrumb">
-            Home
-          </Link>
-          <span className="pdp-breadcrumb-separator">/</span>
-          <Link to="/products" className="pdp-breadcrumb">
-            Fragrances
-          </Link>
-          <span className="pdp-breadcrumb-separator">/</span>
-          <span className="pdp-breadcrumb-current">{product.name}</span>
+        <div className="container-main">
+          <div className="pdp-topline-inner">
+            <Link to="/" className="pdp-breadcrumb">
+              Home
+            </Link>
+            <span className="pdp-breadcrumb-separator">/</span>
+            <Link to="/products" className="pdp-breadcrumb">
+              Fragrances
+            </Link>
+            <span className="pdp-breadcrumb-separator">/</span>
+            <span className="pdp-breadcrumb-current">{product.name}</span>
+          </div>
         </div>
       </div>
 
       <section className="pdp-product-section">
-        <div className="pdp-product-grid">
-          <div className="pdp-gallery">
-            <div className="pdp-gallery-heading">
-              <span>THE FRAGRANCE</span>
-            </div>
+        <div className="container-main">
+          <div className="pdp-product-grid">
+            <div className="pdp-gallery">
+              <div className="pdp-gallery-heading">
+                <span>THE FRAGRANCE</span>
+              </div>
 
-            <div className="pdp-gallery-layout">
-              <div className="pdp-thumbnails" aria-label="Product images">
-                {images.map((image, index) => (
-                  <button
-                    type="button"
-                    key={`${image}-${index}`}
-                    className={`pdp-thumbnail ${
-                      activeImage === index ? "is-active" : ""
-                    }`}
-                    onClick={() => setActiveImage(index)}
-                    aria-label={`View product image ${index + 1}`}
-                    aria-pressed={activeImage === index}
-                  >
+              <div className="pdp-gallery-layout">
+                <div className="pdp-thumbnails" aria-label="Product images">
+                  {images.map((image, index) => (
+                    <button
+                      type="button"
+                      key={`${image}-${index}`}
+                      className={`pdp-thumbnail ${
+                        activeImage === index ? "is-active" : ""
+                      }`}
+                      onClick={() => setActiveImage(index)}
+                      aria-label={`View product image ${index + 1}`}
+                      aria-pressed={activeImage === index}
+                    >
+                      <img
+                        src={image}
+                        alt={`${product.name} view ${index + 1}`}
+                        onError={(event) => {
+                          event.currentTarget.onerror = null
+                          event.currentTarget.src = fallbackImage
+                        }}
+                      />
+                    </button>
+                  ))}
+                </div>
+
+                <div className="pdp-image-stage">
+                  <div className="pdp-image-stage-small-image">
                     <img
-                      src={image}
-                      alt={`${product.name} view ${index + 1}`}
+                      className="pdp-main-image"
+                      src={images[activeImage] || getProductImage(product)}
+                      alt={product.name}
                       onError={(event) => {
                         event.currentTarget.onerror = null
                         event.currentTarget.src = fallbackImage
                       }}
                     />
-                  </button>
-                ))}
-              </div>
 
-              <div className="pdp-image-stage">
-                <div className="pdp-image-stage-small-image">
-                  <img
-                    className="pdp-main-image"
-                    src={images[activeImage] || getProductImage(product)}
-                    alt={product.name}
-                    onError={(event) => {
-                      event.currentTarget.onerror = null
-                      event.currentTarget.src = fallbackImage
-                    }}
-                  />
-
-                  {product.badge && (
-                    <span className="pdp-image-badge">{product.badge}</span>
-                  )}
+                    {product.badge && (
+                      <span className="pdp-image-badge">{product.badge}</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="pdp-product-info">
-            <div className="pdp-product-intro">
-              <span className="pdp-eyebrow">
-                {product.category || "THE NOIRÉ COLLECTION"}
-              </span>
+            <div className="pdp-product-info">
+              <div className="pdp-product-intro">
+                <span className="pdp-eyebrow">
+                  {product.category || "THE NOIRÉ COLLECTION"}
+                </span>
 
-              <h1 className="pdp-product-title">{product.name}</h1>
+                <h1 className="pdp-product-title">{product.name}</h1>
 
-              <div className="pdp-title-rule">
-                <span />
-                <span />
+                <div className="pdp-title-rule">
+                  <span />
+                  <span />
+                </div>
+
+                <div className="pdp-price-row">
+                  <span className="pdp-price">
+                    {formatPrice(product.price)}
+                  </span>
+                  <span className="pdp-price-note">Inclusive of all taxes</span>
+                </div>
+
+                <p className="pdp-description">
+                  {product.description ||
+                    "A distinctive fragrance composed to become part of your signature."}
+                </p>
               </div>
 
-              <div className="pdp-price-row">
-                <span className="pdp-price">{formatPrice(product.price)}</span>
-                <span className="pdp-price-note">Inclusive of all taxes</span>
+              <div className="pdp-product-divider" />
+
+              <div className="pdp-scent-summary">
+                <div className="pdp-scent-summary-item">
+                  <span className="pdp-detail-label">FRAGRANCE FAMILY</span>
+                  <span className="pdp-detail-value">
+                    {product.fragranceFamily ||
+                      product.fragrance_family ||
+                      product.scentType ||
+                      product.scent_type ||
+                      product.category ||
+                      "Signature scent"}
+                  </span>
+                </div>
+
+                <div className="pdp-scent-summary-item">
+                  <span className="pdp-detail-label">SCENT NOTES</span>
+                  <span className="pdp-detail-value">
+                    {Array.isArray(product.notes)
+                      ? product.notes.join(" · ")
+                      : product.notes || "Discover your signature"}
+                  </span>
+                </div>
               </div>
 
-              <p className="pdp-description">
-                {product.description ||
-                  "A distinctive fragrance composed to become part of your signature."}
-              </p>
-            </div>
+              <div className="pdp-quantity-row">
+                <span className="pdp-detail-label">QUANTITY</span>
 
-            <div className="pdp-product-divider" />
+                <div className="pdp-quantity-control">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setQuantity((value) => Math.max(1, value - 1))
+                    }
+                    disabled={quantity <= 1 || adding}
+                    aria-label="Decrease quantity"
+                  >
+                    −
+                  </button>
 
-            <div className="pdp-scent-summary">
-              <div className="pdp-scent-summary-item">
-                <span className="pdp-detail-label">FRAGRANCE FAMILY</span>
-                <span className="pdp-detail-value">
-                  {product.fragranceFamily ||
-                    product.fragrance_family ||
-                    product.scentType ||
-                    product.scent_type ||
-                    product.category ||
-                    "Signature scent"}
+                  <span aria-live="polite">{quantity}</span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setQuantity((value) => Math.min(99, value + 1))
+                    }
+                    disabled={adding || quantity >= 99}
+                    aria-label="Increase quantity"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <span className="pdp-quantity-total">
+                  {totalPrice === null
+                    ? ""
+                    : `TOTAL ${formatPrice(totalPrice)}`}
                 </span>
               </div>
 
-              <div className="pdp-scent-summary-item">
-                <span className="pdp-detail-label">SCENT NOTES</span>
-                <span className="pdp-detail-value">
-                  {Array.isArray(product.notes)
-                    ? product.notes.join(" · ")
-                    : product.notes || "Discover your signature"}
+              <button
+                type="button"
+                className={`pdp-add-button${added ? " is-added" : ""}`}
+                onClick={handleAddToCart}
+                disabled={adding || isOutOfStock || !addToCart}
+              >
+                <span>
+                  {isOutOfStock
+                    ? "Currently unavailable"
+                    : adding
+                      ? "Adding to bag..."
+                      : added
+                        ? "Added to your bag"
+                        : "Add to bag"}
                 </span>
-              </div>
-            </div>
 
-            <div className="pdp-quantity-row">
-              <span className="pdp-detail-label">QUANTITY</span>
-
-              <div className="pdp-quantity-control">
-                <button
-                  type="button"
-                  onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-                  disabled={quantity <= 1 || adding}
-                  aria-label="Decrease quantity"
-                >
-                  −
-                </button>
-
-                <span aria-live="polite">{quantity}</span>
-
-                <button
-                  type="button"
-                  onClick={() => setQuantity((value) => Math.min(99, value + 1))}
-                  disabled={adding || quantity >= 99}
-                  aria-label="Increase quantity"
-                >
-                  +
-                </button>
-              </div>
-
-              <span className="pdp-quantity-total">
-                {totalPrice === null ? "" : `TOTAL ${formatPrice(totalPrice)}`}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              className={`pdp-add-button${added ? " is-added" : ""}`}
-              onClick={handleAddToCart}
-              disabled={adding || isOutOfStock || !addToCart}
-            >
-              <span>
-                {isOutOfStock
-                  ? "Currently unavailable"
-                  : adding
-                    ? "Adding to bag..."
-                    : added
-                      ? "Added to your bag"
-                      : "Add to bag"}
-              </span>
-
-              <span className="pdp-add-button-icon" aria-hidden="true">
-                {added ? "✓" : "↗"}
-              </span>
-            </button>
-
-            {cartError && (
-              <p className="pdp-cart-message is-error" role="alert">
-                {cartError}
-              </p>
-            )}
-
-            {added && (
-              <p className="pdp-cart-message" role="status">
-                Your selection has been added to your bag.
-                <Link to="/cart"> View bag ↗</Link>
-              </p>
-            )}
-
-            <div className="pdp-purchase-notes">
-              <div>
-                <span className="pdp-purchase-icon" aria-hidden="true">
-                  ✳
+                <span className="pdp-add-button-icon" aria-hidden="true">
+                  {added ? "✓" : "↗"}
                 </span>
-                <p>Thoughtfully selected fragrances</p>
-              </div>
-              <div>
-                <span className="pdp-purchase-icon" aria-hidden="true">
-                  ↗
-                </span>
-                <p>Made to leave a lasting impression</p>
-              </div>
-            </div>
+              </button>
 
-            <div className="pdp-product-footnote">
-              <span>THE ART OF SCENT</span>
-              <span>NOIRÉ — EST. IN EVERY MOMENT</span>
+              {cartError && (
+                <p className="pdp-cart-message is-error" role="alert">
+                  {cartError}
+                </p>
+              )}
+
+              {added && (
+                <p className="pdp-cart-message" role="status">
+                  Your selection has been added to your bag.
+                  <Link to="/cart"> View bag ↗</Link>
+                </p>
+              )}
+
+              <div className="pdp-purchase-notes">
+                <div>
+                  <span className="pdp-purchase-icon" aria-hidden="true">
+                    ✳
+                  </span>
+                  <p>Thoughtfully selected fragrances</p>
+                </div>
+                <div>
+                  <span className="pdp-purchase-icon" aria-hidden="true">
+                    ↗
+                  </span>
+                  <p>Made to leave a lasting impression</p>
+                </div>
+              </div>
+
+              <div className="pdp-product-footnote">
+                <span>THE ART OF SCENT</span>
+                <span>NOIRÉ — EST. IN EVERY MOMENT</span>
+              </div>
             </div>
           </div>
         </div>

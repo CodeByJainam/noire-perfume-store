@@ -50,7 +50,7 @@ export default function AdminSidebar() {
         <div className="noire-role">{user?.role?.replace("_", " ")}</div>
         <div className="noire-email">{user?.email}</div>
         <NavLink to="/" className="noire-store-link">
-          ← Back to Store
+          Back to Store
         </NavLink>
       </div>
     </aside>

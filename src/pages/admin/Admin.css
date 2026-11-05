@@ -111,7 +111,7 @@
 /* NOIRÉ Luxury Back to Store */
 
 .noire-store-link {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 9px;
   padding: 10px 12px;
@@ -124,10 +124,15 @@
 
   text-decoration: none;
   font-size: 13px;
-  font-weight: 600;
   letter-spacing: 0.5px;
-
   transition: all 0.3s ease;
+}
+
+.noire-store-link::before {
+  content: "←";
+  display: inline-block;
+  font-size: 16px;
+  transition: transform 0.3s ease;
 }
 
 .noire-store-link:hover {
@@ -137,6 +142,10 @@
 
   transform: translateX(-3px);
   box-shadow: 0 4px 14px rgba(185, 154, 93, 0.15);
+}
+
+.noire-store-link:hover::before {
+  transform: translateX(-4px);
 }
 
 .noire-store-link:active {
@@ -267,9 +276,9 @@
   align-items: center;
   justify-content: center;
   padding: 12px 18px;
-  border: 1px solid var(--noire-black);
+  border: 1px solid var(--noire-gold);
   border-radius: 4px;
-  background: var(--noire-black);
+  background: var(--wine);
   color: var(--noire-white);
   text-decoration: none;
   font: inherit;

@@ -209,47 +209,54 @@ export default function BlogPageDetail() {
           THE NOIRÉ JOURNAL — A CONSIDERED SCENT FOR EVERY VERSION OF YOU
         </figcaption>
       </div>
-      <div className="nbd-article-layout">
-        <aside className="nbd-article-aside">
-          <span className="nbd-aside-label">IN THIS STORY</span>
-          <a href="#story-introduction">Introduction</a>
-          {article.sections.map((section, index) => (
-            <a href={`#story-section-${index}`} key={section.heading}>
-              {section.heading}
-            </a>
-          ))}
-        </aside>
-        <article className="nbd-article-body">
-          <p id="story-introduction" className="nbd-article-intro">
-            {article.intro}
-          </p>
-          {article.sections.map((section, index) => (
-            <section
-              className="nbd-copy-section"
-              id={`story-section-${index}`}
-              key={section.heading}
-            >
-              <span className="nbd-section-number">0{index + 1}</span>
-              <h2>{section.heading}</h2>
-              {section.paragraphs.map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
+      <div className="nbd-article-layout-main">
+        <div className="container-main">
+          <div className="nbd-article-layout">
+            <aside className="nbd-article-aside">
+              <span className="nbd-aside-label">IN THIS STORY</span>
+              <a href="#story-introduction">Introduction</a>
+              {article.sections.map((section, index) => (
+                <a href={`#story-section-${index}`} key={section.heading}>
+                  {section.heading}
+                </a>
               ))}
-              {index === 0 && (
-                <div className="nbd-inline-image">
-                  <ArticleImage src={article.image} alt={article.imageAlt} />
-                </div>
-              )}
-            </section>
-          ))}
-          <blockquote className="nbd-article-quote">
-            <span aria-hidden="true">“</span>
-            <p>{article.quote}</p>
-          </blockquote>
-          <div className="nbd-article-end">
-            <span>END OF STORY</span>
-            <span>NOIRÉ — EST. IN EVERY MOMENT</span>
+            </aside>
+            <article className="nbd-article-body">
+              <p id="story-introduction" className="nbd-article-intro">
+                {article.intro}
+              </p>
+              {article.sections.map((section, index) => (
+                <section
+                  className="nbd-copy-section"
+                  id={`story-section-${index}`}
+                  key={section.heading}
+                >
+                  <span className="nbd-section-number">0{index + 1}</span>
+                  <h2>{section.heading}</h2>
+                  {section.paragraphs.map((paragraph) => (
+                    <p key={paragraph}>{paragraph}</p>
+                  ))}
+                  {index === 0 && (
+                    <div className="nbd-inline-image">
+                      <ArticleImage
+                        src={article.image}
+                        alt={article.imageAlt}
+                      />
+                    </div>
+                  )}
+                </section>
+              ))}
+              <blockquote className="nbd-article-quote">
+                <span aria-hidden="true">“</span>
+                <p>{article.quote}</p>
+              </blockquote>
+              <div className="nbd-article-end">
+                <span>END OF STORY</span>
+                <span>NOIRÉ — EST. IN EVERY MOMENT</span>
+              </div>
+            </article>
           </div>
-        </article>
+        </div>
       </div>
       <section className="nbd-related-section">
         <div className="nbd-related-heading">

@@ -16,12 +16,39 @@ const jwt = require("jsonwebtoken")
 const cookieParser = require("cookie-parser")
 const User = require("./models/User")
 const Order = require("./models/Order")
+const { sendEmail } = require("./services/emailService")
 // const nodemailer = require("nodemailer")
 require("dotenv").config({ path: path.join(__dirname, ".env") })
 
 const hasRazorpayCredentials = Boolean(
   process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET,
 )
+const paymentMode = (process.env.PAYMENT_MODE || "razorpay").toLowerCase()
+const isDemoPaymentMode =
+  paymentMode === "demo" &&
+  process.env.ALLOW_DEMO_PAYMENTS === "true" &&
+  process.env.NODE_ENV !== "production"
+
+// This project is intentionally locked to Razorpay Test Mode.
+// Live keys are rejected until you deliberately remove this safeguard.
+function getRazorpay() {
+  const keyId = process.env.RAZORPAY_KEY_ID
+  const keySecret = process.env.RAZORPAY_KEY_SECRET
+
+  if (!keyId || !keySecret) {
+    throw new Error(
+      "Missing Razorpay credentials. Add test keys to server/.env.",
+    )
+  }
+
+  if (!keyId.startsWith("rzp_test_")) {
+    throw new Error(
+      "NOIRÉ is configured for Razorpay Test Mode only. Use an rzp_test_ Key ID.",
+    )
+  }
+
+  return new Razorpay({ key_id: keyId, key_secret: keySecret })
+}
 const app = express()
 const PORT = Number(process.env.PORT) || 5000
 const allowedOrigins = [
@@ -166,11 +193,22 @@ app.get("/api/health", (_req, res) => {
 })
 
 let mongoConnectionPromise = null
-let lastMongoFailureAt = 0
-const isDevelopment = process.env.NODE_ENV !== "production"
-const mongoRetryDelayMs = 15000
+
+// MongoDB connection status logs
+mongoose.connection.on("connected", () => {
+  console.log("MongoDB connected successfully!")
+})
+
+mongoose.connection.on("disconnected", () => {
+  console.log("MongoDB disconnected. Waiting for reconnection...")
+})
+
+mongoose.connection.on("error", (error) => {
+  console.error("MongoDB connection error:", error.message)
+})
 
 async function ensureMongoConnected() {
+  // Already connected
   if (mongoose.connection.readyState === 1) {
     return
   }
@@ -179,28 +217,26 @@ async function ensureMongoConnected() {
     throw new Error("MONGO_URI is not configured")
   }
 
-  if (
-    isDevelopment &&
-    lastMongoFailureAt &&
-    Date.now() - lastMongoFailureAt < mongoRetryDelayMs
-  ) {
-    throw new Error("MongoDB connection recently failed; retrying shortly.")
-  }
-
+  // If connection is already in progress, reuse it
   if (!mongoConnectionPromise) {
     mongoConnectionPromise = mongoose
       .connect(process.env.MONGO_URI, {
-        serverSelectionTimeoutMS: 8000,
+        serverSelectionTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
+        maxPoolSize: 10,
+        minPoolSize: 0,
+        retryWrites: true,
       })
       .catch((error) => {
-        lastMongoFailureAt = Date.now()
-        mongoConnectionPromise = null
+        console.error("MongoDB connection failed:", error.message)
         throw error
+      })
+      .finally(() => {
+        mongoConnectionPromise = null
       })
   }
 
   await mongoConnectionPromise
-  lastMongoFailureAt = 0
 }
 
 async function getCatalogProducts() {
@@ -436,11 +472,6 @@ app.post("/api/auth/login", async (req, res) => {
       await user.save()
     }
 
-    console.log("LOGIN ROLE RESULT:", {
-      email: user.email,
-      role: user.role,
-    })
-
     // Create authentication token after role update
     const token = createAuthToken(user)
     setAuthCookie(res, token)
@@ -463,29 +494,50 @@ app.post("/api/auth/login", async (req, res) => {
   }
 })
 
+// Resend Email
+app.get("/api/test-email", async (req, res) => {
+  try {
+    const result = await sendEmail({
+      to: "frontendcoder06@gmail.com",
+      subject: "NOIRÉ Test Email",
+      html: "<h1>NOIRÉ Email Service Working!</h1><p>Resend test successful.</p>",
+    })
+
+    return res.json({
+      success: true,
+      message: "Test email sent successfully.",
+      id: result?.id,
+    })
+  } catch (error) {
+    console.error("TEST EMAIL ERROR:", error)
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    })
+  }
+})
+
 // Forgot Password
-
-/* =========================================
-   FORGOT PASSWORD
-========================================= */
-
 app.post("/api/auth/forgot-password", async (req, res) => {
   let user = null
 
   try {
-    const email = String(req.body?.email || "")
-      .trim()
-      .toLowerCase()
+    const email = req.body?.email?.trim().toLowerCase()
 
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (
+      typeof email !== "string" ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ) {
       return res.status(400).json({
         message: "Please enter a valid email address.",
       })
     }
 
+    // Find registered user
     user = await User.findOne({ email })
 
-    // Same response for existing and non-existing accounts.
+    // Do not reveal whether an account exists
     if (!user) {
       return res.json({
         message:
@@ -493,62 +545,66 @@ app.post("/api/auth/forgot-password", async (req, res) => {
       })
     }
 
-    // Generate a secure random token.
+    // Generate secure reset token
     const resetToken = crypto.randomBytes(32).toString("hex")
 
-    // Store only the hash in MongoDB.
-    const hashedToken = crypto
+    // Store hashed token in database
+    user.resetPasswordToken = crypto
       .createHash("sha256")
       .update(resetToken)
       .digest("hex")
 
-    user.resetPasswordToken = hashedToken
+    // Token expires after 15 minutes
     user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000)
 
     await user.save()
 
-    const clientUrl = (
-      process.env.CLIENT_URL || "https://noire-perfume-store-five.vercel.app/"
-    ).replace(/\/+$/, "")
+    // Create frontend reset URL
+    const clientUrl = process.env.CLIENT_URL?.split(",")[0]
+      ?.trim()
+      ?.replace(/\/+$/, "")
+
+    if (!clientUrl) {
+      throw new Error("CLIENT_URL is not configured.")
+    }
 
     const resetUrl = `${clientUrl}/reset-password/${resetToken}`
 
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: process.env.RESEND_FROM_EMAIL,
-        to: [user.email],
+    // Send reset email using Resend
+    try {
+      await sendEmail({
+        to: user.email,
         subject: "Reset your NOIRÉ password",
         html: `
-            <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#222">
-              <h1 style="letter-spacing:5px">NOIRÉ</h1>
-              <h2>Reset your password</h2>
-              <p>We received a request to reset your NOIRÉ account password.</p>
-              <p>
-                <a href="${resetUrl}"
-                   style="display:inline-block;padding:13px 24px;background:#171717;color:#fff;text-decoration:none">
-                  Reset Password
-                </a>
-              </p>
-              <p>This link expires in 15 minutes and can only be used once.</p>
-              <p>If you did not request this, you can ignore this email.</p>
-            </div>
-          `,
-      }),
-    })
+          <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#222">
+            <h1 style="letter-spacing:5px">NOIRÉ</h1>
+            <h2>Reset your password</h2>
 
-    if (!emailResponse.ok) {
-      const providerError = await emailResponse.text()
-      console.error("Resend email error:", providerError)
+            <p>We received a request to reset your NOIRÉ account password.</p>
 
-      // Invalidate the unused token if email delivery fails.
-      user.resetPasswordToken = undefined
-      user.resetPasswordExpires = undefined
-      await user.save()
+            <p>
+              <a
+                href="${resetUrl}"
+                style="display:inline-block;padding:13px 24px;background:#171717;color:#fff;text-decoration:none"
+              >
+                Reset Password
+              </a>
+            </p>
+
+            <p>This link expires in 15 minutes and can only be used once.</p>
+            <p>If you did not request this, you can ignore this email.</p>
+          </div>
+        `,
+      })
+    } catch (emailError) {
+      console.error("Password reset email failed:", emailError.message)
+
+      // Clear reset token if email fails
+      if (user) {
+        user.resetPasswordToken = undefined
+        user.resetPasswordExpires = undefined
+        await user.save()
+      }
 
       return res.status(502).json({
         message: "Unable to send the reset email. Please try again later.",
@@ -563,11 +619,10 @@ app.post("/api/auth/forgot-password", async (req, res) => {
     console.error("Forgot password error:", error.message)
 
     return res.status(500).json({
-      message: "Unable to process your request right now.",
+      message: "Unable to process your request. Please try again later.",
     })
   }
 })
-
 /* =========================================
    RESET PASSWORD
 ========================================= */
@@ -1351,6 +1406,12 @@ app.get("/api/admin/summary", requireAuth, requireAdmin, async (req, res) => {
 // Create a Razorpay order and persist a pending order for the authenticated customer.
 app.post("/api/payments/create-order", requireAuth, async (req, res) => {
   try {
+    if (paymentMode === "demo" && !isDemoPaymentMode) {
+      return res.status(403).json({
+        message:
+          "Demo payments are disabled. Enable them only for local development.",
+      })
+    }
     await ensureMongoConnected()
     const { items, customer } = req.body || {}
 
@@ -1420,14 +1481,21 @@ app.post("/api/payments/create-order", requireAuth, async (req, res) => {
       return res.status(400).json({ message: "Invalid order total." })
     }
 
-    const client = getRazorpay()
     const orderNumber = `NO-${crypto.randomUUID().replace(/-/g, "").slice(0, 10).toUpperCase()}`
-    const razorpayOrder = await client.orders.create({
-      amount,
-      currency: "INR",
-      receipt: `noire_${crypto.randomUUID().replace(/-/g, "").slice(0, 32)}`,
-      notes: { store: "NOIRE", customerId: String(req.auth.sub), orderNumber },
-    })
+    let razorpayOrder = null
+    if (!isDemoPaymentMode) {
+      const client = getRazorpay()
+      razorpayOrder = await client.orders.create({
+        amount,
+        currency: "INR",
+        receipt: `noire_${crypto.randomUUID().replace(/-/g, "").slice(0, 32)}`,
+        notes: {
+          store: "NOIRE",
+          customerId: String(req.auth.sub),
+          orderNumber,
+        },
+      })
+    }
 
     const subtotal = amount / 100
     const savedOrder = await Order.create({
@@ -1439,19 +1507,30 @@ app.post("/api/payments/create-order", requireAuth, async (req, res) => {
       shipping: 0,
       total: subtotal,
       currency: "INR",
-      paymentMethod: "razorpay",
+      paymentMethod: isDemoPaymentMode ? "demo" : "razorpay",
       paymentStatus: "pending",
       orderStatus: "placed",
-      razorpayOrderId: razorpayOrder.id,
+      razorpayOrderId: razorpayOrder?.id || `demo_${orderNumber}`,
     })
 
-    return res.status(201).json({
-      keyId: process.env.RAZORPAY_KEY_ID,
-      orderId: razorpayOrder.id,
-      amount: razorpayOrder.amount,
-      currency: razorpayOrder.currency,
-      orderNumber: savedOrder.orderNumber,
-    })
+    return res.status(201).json(
+      isDemoPaymentMode
+        ? {
+            paymentMode: "demo",
+            orderId: savedOrder.orderNumber,
+            amount,
+            currency: "INR",
+            orderNumber: savedOrder.orderNumber,
+          }
+        : {
+            paymentMode: "razorpay",
+            keyId: process.env.RAZORPAY_KEY_ID,
+            orderId: razorpayOrder.id,
+            amount: razorpayOrder.amount,
+            currency: razorpayOrder.currency,
+            orderNumber: savedOrder.orderNumber,
+          },
+    )
   } catch (error) {
     console.error("Create order error:", error.message)
     if (mongoose.connection.readyState !== 1 && !isDevelopment) {
@@ -1494,6 +1573,58 @@ app.get("/api/orders/my-orders", requireAuth, async (req, res) => {
 // Verify Razorpay payment
 app.post("/api/payments/verify", requireAuth, async (req, res) => {
   try {
+    // Demo payments are local development simulations, never real transactions.
+    if (req.body?.demo === true) {
+      if (!isDemoPaymentMode) {
+        return res.status(403).json({ message: "Demo payments are disabled." })
+      }
+      const { orderId, outcome } = req.body
+      if (
+        typeof orderId !== "string" ||
+        !["success", "failure"].includes(outcome)
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Invalid demo payment request." })
+      }
+      await ensureMongoConnected()
+      const demoOrder = await Order.findOne({
+        orderNumber: orderId,
+        user: req.auth.sub,
+        paymentMethod: "demo",
+      })
+      if (!demoOrder) {
+        return res.status(404).json({ message: "Demo order not found." })
+      }
+      if (demoOrder.paymentStatus !== "pending") {
+        return res
+          .status(409)
+          .json({ message: "This order has already been processed." })
+      }
+      if (outcome === "failure") {
+        demoOrder.paymentStatus = "failed"
+        demoOrder.orderStatus = "cancelled"
+        await demoOrder.save()
+        return res.json({
+          verified: false,
+          status: "failed",
+          message: "Demo payment marked as failed.",
+        })
+      }
+      const demoPaymentId = `demo_pay_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`
+      demoOrder.paymentStatus = "paid"
+      demoOrder.razorpayPaymentId = demoPaymentId
+      demoOrder.orderStatus = "processing"
+      await demoOrder.save()
+      return res.json({
+        verified: true,
+        orderId: demoOrder.orderNumber,
+        paymentId: demoPaymentId,
+        status: "paid",
+        demo: true,
+      })
+    }
+
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
       req.body || {}
 
@@ -1577,6 +1708,29 @@ app.post("/api/payments/verify", requireAuth, async (req, res) => {
     return res.status(500).json({
       message:
         "We could not verify your payment yet. Please contact support before trying to pay again.",
+    })
+  }
+})
+
+app.get("/api/test-email", async (req, res) => {
+  try {
+    const result = await sendEmail({
+      to: "frontendcoder06@gmail.com",
+      subject: "NOIRÉ Test Email",
+      html: "<h1>NOIRÉ Email Service Working!</h1>",
+    })
+
+    return res.json({
+      success: true,
+      message: "Test email sent successfully.",
+      id: result?.id,
+    })
+  } catch (error) {
+    console.error("TEST EMAIL ERROR:", error)
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
     })
   }
 })

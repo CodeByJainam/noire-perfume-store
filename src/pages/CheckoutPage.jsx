@@ -1,5 +1,5 @@
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
@@ -65,10 +65,6 @@ export default function CheckoutPage() {
     );
   }, 0);
 
-  useEffect(() => {
-    loadRazorpay();
-  }, []);
-
   const updateCustomer = (event) => {
     const { name, value } = event.target;
 
@@ -99,12 +95,6 @@ export default function CheckoutPage() {
     setLoading(true);
 
     try {
-      const scriptReady = await loadRazorpay();
-
-      if (!scriptReady) {
-        throw new Error("Payment window could not load. Please retry.");
-      }
-
       const response = await fetch(
         apiUrl("/api/payments/create-order"),
         {
@@ -132,6 +122,31 @@ export default function CheckoutPage() {
       if (!response.ok) {
         throw new Error(order.message || "Could not create order.");
       }
+
+      if (order.paymentMode === "demo") {
+        const outcome = window.confirm(
+          `NOIRÉ DEMO PAYMENT\n\nOrder: ${order.orderNumber}\nAmount: ${formatPrice(order.amount / 100)}\n\nOK = Simulate successful payment\nCancel = Simulate failed payment`
+        )
+        const verifyResponse = await fetch(apiUrl("/api/payments/verify"), {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ demo: true, orderId: order.orderId, outcome: outcome ? "success" : "failure" }),
+        })
+        const verification = await verifyResponse.json()
+        if (!verifyResponse.ok) throw new Error(verification.message || "Demo payment could not be processed.")
+        if (!outcome || !verification.verified) {
+          setError("Demo payment failed. Your cart is unchanged; you can try again.")
+          setLoading(false)
+          return
+        }
+        clearCart()
+        navigate("/order-success", { replace: true, state: { orderId: verification.orderId, paymentId: verification.paymentId, demo: true } })
+        return
+      }
+
+      const scriptReady = await loadRazorpay()
+      if (!scriptReady) throw new Error("Payment window could not load. Please retry.")
 
       const razorpay = new window.Razorpay({
         key: order.keyId,

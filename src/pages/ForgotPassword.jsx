@@ -14,11 +14,32 @@ function ForgotPassword() {
     setLoading(true)
 
     try {
-      // Backend API integration will be added here.
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"
+
+      const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to process your request.")
+      }
+
       setMessage(
-        "The password reset feature is not connected yet. Please try again later.",
+        data.message ||
+          "If an account exists for this email, a reset link will be sent.",
       )
+      setEmail("")
     } catch (err) {
+      console.error("Forgot password error:", err)
+
       setError(err.message || "Something went wrong. Please try again.")
     } finally {
       setLoading(false)
@@ -36,8 +57,7 @@ function ForgotPassword() {
               <p className="login-eyebrow">ACCOUNT RECOVERY</p>
               <h1>
                 A fresh start.
-                <br />
-                A familiar scent.
+                <br />A familiar scent.
               </h1>
               <p>
                 Let's help you return to your world of signature fragrances.
