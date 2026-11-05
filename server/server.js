@@ -1755,6 +1755,12 @@ if (require.main === module) {
     console.log(`NOIRÉ API running at http://localhost:${PORT}`)
   })
 }
-
+console.log("EXPRESS APP LOADED");
+console.log(
+  "REGISTERED ROUTES:",
+  app._router?.stack
+    ?.filter((layer) => layer.route)
+    .map((layer) => layer.route.path)
+);
 // Export the Express app for Vercel.
 module.exports = app
