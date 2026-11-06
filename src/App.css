@@ -6265,6 +6265,7 @@ select:focus-visible {
   font-weight: 600;
   white-space: nowrap;
   color: #171411;
+  padding-right: 15px;
 }
 
 .noire-order-view {
