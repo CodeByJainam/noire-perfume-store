@@ -6246,12 +6246,12 @@ select:focus-visible {
   color: #8c7c70;
 }
 
-.noire-order-summary {
+/* .noire-order-summary {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 24px;
-}
+} */
 
 .noire-order-badges {
   display: flex;
