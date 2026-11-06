@@ -1,0 +1,16 @@
+NOIRE ORDER HISTORY ROUTING FIX
+
+Added dedicated Vercel function entrypoints:
+- api/orders/my-orders.js
+- api/orders/[...path].js
+
+Both forward requests to the existing Express app in server/server.js.
+The existing GET /api/orders/my-orders route, requireAuth middleware,
+MongoDB query, and frontend remain unchanged.
+
+After extracting into the existing project, commit and push the two files.
+Then test while logged in at /api/orders/my-orders.
+A 200 response should contain { "orders": [...] }.
+A 401 means the browser request did not include a valid login cookie;
+a 503 means the existing MongoDB/order query returned an error.
+Check Vercel Runtime Logs for "ORDERS VERCEL ENTRYPOINT".
