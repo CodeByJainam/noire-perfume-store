@@ -5274,9 +5274,7 @@ select:focus-visible {
     padding: 28px 0 45px;
   }
 
-  .account-main > .container-main {
-    width: calc(100% - 30px);
-  }
+  
 
   .account-profile {
     align-items: flex-start;
@@ -5593,9 +5591,7 @@ select:focus-visible {
 }
 
 @media (max-width: 650px) {
-  .account-page {
-    padding: 35px 15px 50px;
-  }
+  
 
   .account-layout {
     grid-template-columns: 1fr;

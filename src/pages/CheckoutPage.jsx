@@ -33,6 +33,18 @@ const formatPrice = (amount) =>
     maximumFractionDigits: 2,
   }).format(amount);
 
+async function readApiResponse(response) {
+  const responseText = await response.text();
+  try {
+    return responseText ? JSON.parse(responseText) : {};
+  } catch {
+    const preview = responseText.replace(/\s+/g, " ").slice(0, 180);
+    throw new Error(
+      `Payment API returned a non-JSON response (HTTP ${response.status}). ${preview || "The response was empty."} Check the Vercel API deployment and /api/payments route.`
+    );
+  }
+}
+
 export default function CheckoutPage() {
   const { cart, clearCart } = useCart();
   const { isAuthenticated, authLoading } = useAuth();
@@ -117,7 +129,7 @@ export default function CheckoutPage() {
         }
       );
 
-      const order = await response.json();
+      const order = await readApiResponse(response);
 
       if (!response.ok) {
         throw new Error(order.message || "Could not create order.");
@@ -180,7 +192,7 @@ export default function CheckoutPage() {
               }
             );
 
-            const verification = await verifyResponse.json();
+            const verification = await readApiResponse(verifyResponse);
 
             if (!verifyResponse.ok || !verification.verified) {
               throw new Error(

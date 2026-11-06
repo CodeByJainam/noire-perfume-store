@@ -1546,7 +1546,7 @@ app.post("/api/payments/create-order", requireAuth, async (req, res) => {
     )
   } catch (error) {
     console.error("Create order error:", error.message)
-    if (mongoose.connection.readyState !== 1 && !isDevelopment) {
+    if (mongoose.connection.readyState !== 1 && process.env.NODE_ENV === "production") {
       return res
         .status(503)
         .json({ message: "The product database is temporarily unavailable." })
