@@ -1,111 +1,133 @@
-import { useEffect, useState } from "react"
-import { Link, Navigate, useNavigate } from "react-router-dom"
-import { useAuth } from "../context/AuthContext"
-import { apiUrl } from "../lib/api"
+import { useEffect, useState } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { apiUrl } from "../lib/api";
 
 function AccountPage() {
-  const { user, isAuthenticated, authLoading, logout, updateUser } = useAuth()
-  const navigate = useNavigate()
-  const [loggingOut, setLoggingOut] = useState(false)
-  const [error, setError] = useState("")
-  const [orders, setOrders] = useState([])
-  const [ordersLoading, setOrdersLoading] = useState(true)
-  const [ordersError, setOrdersError] = useState("")
-  const [editingProfile, setEditingProfile] = useState(false)
-  const [profileName, setProfileName] = useState("")
-  const [profileEmail, setProfileEmail] = useState("")
-  const [profileSaving, setProfileSaving] = useState(false)
-  const [profileMessage, setProfileMessage] = useState("")
-  const [profileError, setProfileError] = useState("")
-
+  const { user, isAuthenticated, authLoading, logout, updateUser } = useAuth();
+  const navigate = useNavigate();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [error, setError] = useState("");
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [ordersError, setOrdersError] = useState("");
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profileEmail, setProfileEmail] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
+  const [profileError, setProfileError] = useState("");
+  const [visibleOrderCount, setVisibleOrderCount] = useState(5);
+  const [expandedOrderIds, setExpandedOrderIds] = useState(new Set());
   useEffect(() => {
-    if (authLoading || !isAuthenticated) return
-    const controller = new AbortController()
+    if (authLoading || !isAuthenticated) return;
+    const controller = new AbortController();
 
     async function loadOrders() {
-      setOrdersLoading(true)
-      setOrdersError("")
+      setOrdersLoading(true);
+      setOrdersError("");
       try {
         const response = await fetch(apiUrl("/api/orders/my-orders"), {
           credentials: "include",
           signal: controller.signal,
-        })
-        const data = await response.json().catch(() => ({}))
+        });
+        const data = await response.json().catch(() => ({}));
         if (!response.ok)
-          throw new Error(data.message || "Could not load your orders.")
-        setOrders(Array.isArray(data.orders) ? data.orders : [])
+          throw new Error(data.message || "Could not load your orders.");
+        setOrders(Array.isArray(data.orders) ? data.orders : []);
       } catch (err) {
         if (err.name !== "AbortError")
-          setOrdersError(err.message || "Could not load your orders.")
+          setOrdersError(err.message || "Could not load your orders.");
       } finally {
-        if (!controller.signal.aborted) setOrdersLoading(false)
+        if (!controller.signal.aborted) setOrdersLoading(false);
       }
     }
 
-    loadOrders()
-    return () => controller.abort()
-  }, [authLoading, isAuthenticated])
+    loadOrders();
+    return () => controller.abort();
+  }, [authLoading, isAuthenticated]);
 
   if (authLoading) {
     return (
       <main className="account-page">
         <p className="account-loading">Loading your account...</p>
       </main>
-    )
+    );
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" replace />;
   }
 
   const startProfileEdit = () => {
-    setProfileName(user?.name || "")
-    setProfileEmail(user?.email || "")
-    setProfileMessage("")
-    setProfileError("")
-    setEditingProfile(true)
-  }
+    setProfileName(user?.name || "");
+    setProfileEmail(user?.email || "");
+    setProfileMessage("");
+    setProfileError("");
+    setEditingProfile(true);
+  };
 
   const saveProfile = async (event) => {
-    event.preventDefault()
-    setProfileSaving(true)
-    setProfileMessage("")
-    setProfileError("")
+    event.preventDefault();
+    setProfileSaving(true);
+    setProfileMessage("");
+    setProfileError("");
     try {
       const response = await fetch(apiUrl("/api/auth/profile"), {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: profileName, email: profileEmail }),
-      })
-      const data = await response.json().catch(() => ({}))
+      });
+      const data = await response.json().catch(() => ({}));
       if (!response.ok)
-        throw new Error(data.message || "Unable to update your profile.")
-      updateUser(data.user)
-      setEditingProfile(false)
-      setProfileMessage("Your profile has been updated successfully.")
+        throw new Error(data.message || "Unable to update your profile.");
+      updateUser(data.user);
+      setEditingProfile(false);
+      setProfileMessage("Your profile has been updated successfully.");
     } catch (err) {
-      setProfileError(err.message || "Unable to update your profile.")
+      setProfileError(err.message || "Unable to update your profile.");
     } finally {
-      setProfileSaving(false)
+      setProfileSaving(false);
     }
-  }
+  };
 
   const handleLogout = async () => {
-    setError("")
-    setLoggingOut(true)
+    setError("");
+    setLoggingOut(true);
 
     try {
-      await logout()
-      navigate("/login", { replace: true })
+      await logout();
+      navigate("/login", { replace: true });
     } catch (err) {
-      setError("Logout failed. Please try again.")
-      console.error("Logout failed:", err)
+      setError("Logout failed. Please try again.");
+      console.error("Logout failed:", err);
     } finally {
-      setLoggingOut(false)
+      setLoggingOut(false);
     }
-  }
+  };
+  const toggleOrderDetails = (orderId) => {
+    setExpandedOrderIds((previous) => {
+      const updated = new Set(previous);
 
+      if (updated.has(orderId)) {
+        updated.delete(orderId);
+      } else {
+        updated.add(orderId);
+      }
+
+      return updated;
+    });
+  };
+
+  const formatOrderPrice = (amount, currency = "INR") => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Number(amount) || 0);
+  };
   return (
     <main className="account-page">
       <div className="account-main">
@@ -265,6 +287,9 @@ function AccountPage() {
             <div className="account-orders-heading">
               <span className="account-label">YOUR PURCHASES</span>
               <h2 id="account-orders-title">Order History</h2>
+              <p className="noire-orders-subtitle">
+                Your fragrance purchases, all in one place.
+              </p>
             </div>
 
             {ordersLoading ? (
@@ -287,86 +312,215 @@ function AccountPage() {
                 </Link>
               </div>
             ) : (
-              <div className="account-orders-list">
-                {orders.map((order) => (
-                  <article
-                    className="account-order-card"
-                    key={order._id || order.orderNumber}
-                  >
-                    <div className="account-order-card-heading">
-                      <div>
-                        <span className="account-label">ORDER REFERENCE</span>
-                        <h3>{order.orderNumber}</h3>
-                        <p>
-                          {new Date(order.createdAt).toLocaleDateString(
-                            "en-IN",
-                            { day: "numeric", month: "short", year: "numeric" },
-                          )}
-                        </p>
-                      </div>
-                      <div className="account-order-statuses">
-                        <span
-                          className={`account-order-badge status-${order.orderStatus}`}
+              <>
+                <div className="noire-orders-toolbar">
+                  <span>
+                    Showing {Math.min(visibleOrderCount, orders.length)} of{" "}
+                    {orders.length} orders
+                  </span>
+                  <span className="noire-orders-count">
+                    {orders.length} {orders.length === 1 ? "ORDER" : "ORDERS"}
+                  </span>
+                </div>
+
+                <div className="noire-accordion-list">
+                  {orders.slice(0, visibleOrderCount).map((order) => {
+                    const orderId = order._id || order.orderNumber;
+                    const isExpanded = expandedOrderIds.has(orderId);
+
+                    return (
+                      <article
+                        className={`noire-order-accordion ${
+                          isExpanded ? "is-expanded" : ""
+                        }`}
+                        key={orderId}
+                      >
+                        <button
+                          type="button"
+                          className="noire-order-trigger"
+                          aria-expanded={isExpanded}
+                          aria-controls={`order-details-${orderId}`}
+                          onClick={() => toggleOrderDetails(orderId)}
                         >
-                          {String(order.orderStatus || "placed").replace(
-                            /-/g,
-                            " ",
-                          )}
-                        </span>
-                        <span
-                          className={`account-order-badge payment-${order.paymentStatus}`}
-                        >
-                          Payment: {order.paymentStatus}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="account-order-items">
-                      {(order.items || []).map((item) => (
-                        <div
-                          className="account-order-item"
-                          key={`${order.orderNumber}-${item.productId}`}
-                        >
-                          {item.image ? (
-                            <img src={item.image} alt={item.name} />
-                          ) : (
-                            <div className="account-order-item-placeholder">
-                              N.
-                            </div>
-                          )}
-                          <div className="account-order-item-info">
-                            <h4>{item.name}</h4>
-                            <p>
-                              Qty {item.quantity} ·{" "}
-                              {new Intl.NumberFormat("en-IN", {
-                                style: "currency",
-                                currency: order.currency || "INR",
-                                maximumFractionDigits: 2,
-                              }).format(item.unitPrice)}
-                            </p>
+                          <div className="noire-order-main">
+                            <span className="noire-order-reference">
+                              ORDER REFERENCE
+                            </span>
+
+                            <h3>{order.orderNumber}</h3>
+
+                            <span className="noire-order-date">
+                              {new Date(order.createdAt).toLocaleDateString(
+                                "en-IN",
+                                {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                },
+                              )}
+                            </span>
                           </div>
-                          <strong>
-                            {new Intl.NumberFormat("en-IN", {
-                              style: "currency",
-                              currency: order.currency || "INR",
-                              maximumFractionDigits: 2,
-                            }).format(item.lineTotal)}
-                          </strong>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="account-order-total">
-                      <span>Total</span>
-                      <strong>
-                        {new Intl.NumberFormat("en-IN", {
-                          style: "currency",
-                          currency: order.currency || "INR",
-                          maximumFractionDigits: 2,
-                        }).format(order.total)}
-                      </strong>
-                    </div>
-                  </article>
-                ))}
-              </div>
+
+                          <div className="noire-order-summary">
+                            <div className="noire-order-badges">
+                              <span
+                                className={`account-order-badge status-${order.orderStatus}`}
+                              >
+                                {String(order.orderStatus || "placed").replace(
+                                  /-/g,
+                                  " ",
+                                )}
+                              </span>
+
+                              <span
+                                className={`account-order-badge payment-${order.paymentStatus}`}
+                              >
+                                Payment: {order.paymentStatus}
+                              </span>
+                            </div>
+
+                            <strong className="noire-order-amount">
+                              {formatOrderPrice(order.total, order.currency)}
+                            </strong>
+
+                            <span className="noire-order-view">
+                              {isExpanded ? "Hide Details" : "View Details"}
+
+                              <svg
+                                className={`noire-order-chevron ${
+                                  isExpanded ? "rotated" : ""
+                                }`}
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  d="m6 9 6 6 6-6"
+                                  stroke="currentColor"
+                                  strokeWidth="1.6"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </span>
+                          </div>
+                        </button>
+
+                        {isExpanded && (
+                          <div
+                            className="noire-order-details"
+                            id={`order-details-${orderId}`}
+                          >
+                            <div className="noire-order-details-heading">
+                              <span>ORDER ITEMS</span>
+                              <span>
+                                {(order.items || []).length}{" "}
+                                {(order.items || []).length === 1
+                                  ? "ITEM"
+                                  : "ITEMS"}
+                              </span>
+                            </div>
+
+                            <div className="noire-order-products">
+                              {(order.items || []).map((item, index) => (
+                                <div
+                                  className="noire-order-product"
+                                  key={`${orderId}-${item.productId || index}`}
+                                >
+                                  {item.image ? (
+                                    <img
+                                      src={item.image}
+                                      alt={item.name}
+                                      className="noire-order-product-image"
+                                    />
+                                  ) : (
+                                    <div className="noire-order-product-placeholder">
+                                      N.
+                                    </div>
+                                  )}
+
+                                  <div className="noire-order-product-info">
+                                    <h4>{item.name}</h4>
+
+                                    <p>
+                                      Qty {item.quantity} ·{" "}
+                                      {formatOrderPrice(
+                                        item.unitPrice,
+                                        order.currency,
+                                      )}
+                                    </p>
+                                  </div>
+
+                                  <strong className="noire-order-product-price">
+                                    {formatOrderPrice(
+                                      item.lineTotal,
+                                      order.currency,
+                                    )}
+                                  </strong>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="noire-order-breakdown">
+                              <div>
+                                <span>Subtotal</span>
+                                <span>
+                                  {formatOrderPrice(
+                                    order.subtotal,
+                                    order.currency,
+                                  )}
+                                </span>
+                              </div>
+
+                              <div>
+                                <span>Shipping</span>
+                                <span>
+                                  {formatOrderPrice(
+                                    order.shipping,
+                                    order.currency,
+                                  )}
+                                </span>
+                              </div>
+
+                              <div className="noire-order-grand-total">
+                                <strong>Total</strong>
+                                <strong>
+                                  {formatOrderPrice(
+                                    order.total,
+                                    order.currency,
+                                  )}
+                                </strong>
+                              </div>
+                            </div>
+
+                            <div className="noire-order-payment-info">
+                              <span>PAYMENT METHOD</span>
+                              <strong>
+                                {String(
+                                  order.paymentMethod || "N/A",
+                                ).toUpperCase()}
+                              </strong>
+                            </div>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+
+                {visibleOrderCount < orders.length && (
+                  <button
+                    type="button"
+                    className="noire-load-more"
+                    onClick={() =>
+                      setVisibleOrderCount((previous) => previous + 5)
+                    }
+                  >
+                    Load More Orders
+                    <span>({orders.length - visibleOrderCount} remaining)</span>
+                  </button>
+                )}
+              </>
             )}
           </section>
 
@@ -398,7 +552,7 @@ function AccountPage() {
         </div>
       </div>
     </main>
-  )
+  );
 }
 
-export default AccountPage
+export default AccountPage;
