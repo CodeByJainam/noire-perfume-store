@@ -1,3 +1,4 @@
+const isDevelopment = process.env.NODE_ENV !== "production";
 const dns = require("node:dns")
 
 if (process.platform === "win32") {
@@ -26,8 +27,7 @@ const hasRazorpayCredentials = Boolean(
 const paymentMode = (process.env.PAYMENT_MODE || "razorpay").toLowerCase()
 const isDemoPaymentMode =
   paymentMode === "demo" &&
-  process.env.ALLOW_DEMO_PAYMENTS === "true" &&
-  process.env.NODE_ENV !== "production"
+  process.env.ALLOW_DEMO_PAYMENTS === "true"
 
 // This project is intentionally locked to Razorpay Test Mode.
 // Live keys are rejected until you deliberately remove this safeguard.
